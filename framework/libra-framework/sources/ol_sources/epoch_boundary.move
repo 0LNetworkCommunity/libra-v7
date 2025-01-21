@@ -11,7 +11,7 @@ module diem_framework::epoch_boundary {
   use diem_framework::reconfiguration;
   use diem_framework::transaction_fee;
   use diem_framework::system_addresses;
-  use ol_framework::jail;
+  // use ol_framework::jail;
   use ol_framework::safe;
   use ol_framework::burn;
   use ol_framework::stake;
@@ -45,6 +45,8 @@ module diem_framework::epoch_boundary {
   const ETRIGGER_NOT_READY: u64 = 2;
   /// Epoch number mismatch
   const ENOT_SAME_EPOCH: u64 = 3;
+  /// Supply should not change until burns
+  const ESUPPLY_SHOULD_NOT_CHANGE: u64 = 4;
 
   /////// Constants ////////
   /// How many PoF baseline rewards to we set aside for the miners.
@@ -260,7 +262,7 @@ module diem_framework::epoch_boundary {
     assert!(state.ready, ETRIGGER_NOT_READY);
     // greater than, in case there is an epoch change due to an epoch bump in
     // testnet Twin tools, or a rescue operation.
-    assert!(state.closing_epoch <= reconfiguration::get_current_epoch(),
+    assert!(state.closing_epoch <= reconfiguration::current_epoch(),
     ENOT_SAME_EPOCH);
     true
   }
@@ -277,7 +279,11 @@ module diem_framework::epoch_boundary {
   // and prevents dependency cycling.
   public(friend) fun epoch_boundary(root: &signer, closing_epoch: u64, epoch_round: u64)
   acquires BoundaryStatus {
+
     print(&string::utf8(b"EPOCH BOUNDARY BEGINS"));
+    // assert the supply does not change until there are burns.
+    let supply_a = libra_coin::supply();
+
     // either 0x0 or 0x1 can call, but we will always use framework signer
     system_addresses::assert_ol(root);
     let root = &create_signer::create_signer(@ol_framework);
@@ -307,11 +313,17 @@ module diem_framework::epoch_boundary {
     print(&string::utf8(b"musical_chairs::stop_the_music"));
     let (compliant_vals, n_seats) = musical_chairs::stop_the_music(root,
     closing_epoch, epoch_round);
+    print(&compliant_vals);
     status.incoming_compliant_count = vector::length(&compliant_vals);
     status.incoming_compliant = compliant_vals;
     status.incoming_seats_offered = n_seats;
 
+    // up to this point supply should remain unchanged.
+    let supply_b = libra_coin::supply();
+    assert!(supply_b == supply_a, ESUPPLY_SHOULD_NOT_CHANGE);
+
     print(&string::utf8(b"settle_accounts"));
+
     settle_accounts(root, compliant_vals, status);
 
     print(&string::utf8(b"slow_wallet::on_new_epoch"));
@@ -352,6 +364,7 @@ module diem_framework::epoch_boundary {
   /// withdraw coins and settle accounts for validators and oracles
   /// returns the list of compliant_vals
   fun settle_accounts(root: &signer, compliant_vals: vector<address>, status: &mut BoundaryStatus): vector<address> {
+    let supply_a = libra_coin::supply();
     assert!(transaction_fee::is_fees_collection_enabled(), error::invalid_state(ETX_FEES_NOT_INITIALIZED));
 
     if (transaction_fee::system_fees_collected() > 0) {
@@ -377,6 +390,10 @@ module diem_framework::epoch_boundary {
         status.outgoing_vals_success = total_reward == (vector::length(&compliant_vals) * nominal_reward_to_vals)
       };
 
+      // up to this point supply should remain unchanged.
+      let supply_b = libra_coin::supply();
+      assert!(supply_b == supply_a, ESUPPLY_SHOULD_NOT_CHANGE);
+
       // Commit note: deprecated with tower mining.
 
       // remainder gets burnt according to fee maker preferences
@@ -394,33 +411,27 @@ module diem_framework::epoch_boundary {
 
 
   /// process the payments for performant validators
-  /// jail the non performant
   /// NOTE: receives from reconfiguration.move a mutable borrow of a coin to pay reward
   /// NOTE: burn remaining fees from transaction fee account happens in reconfiguration.move (it's not a validator_universe concern)
   // Returns (compliant_vals, reward_deposited)
   fun process_outgoing_validators(root: &signer, reward_budget: &mut Coin<LibraCoin>, reward_per: u64, compliant_vals: vector<address>): (vector<address>, u64){
     system_addresses::assert_ol(root);
-    let vals = stake::get_current_validators();
+    // let vals = stake::get_current_validators();
     let reward_deposited = 0;
 
     let i = 0;
-    while (i < vector::length(&vals)) {
-      let addr = vector::borrow(&vals, i);
+    while (i < vector::length(&compliant_vals)) {
+      let addr = vector::borrow(&compliant_vals, i);
       // belt and suspenders for dropped accounts in hard fork.
       if (!account::exists_at(*addr)) {
         i = i + 1;
         continue
       };
-      let performed = vector::contains(&compliant_vals, addr);
-      if (!performed) {
-        jail::jail(root, *addr);
-      } else {
-        // vector::push_back(&mut compliant_vals, *addr);
-        if (libra_coin::value(reward_budget) >= reward_per) {
-          let user_coin = libra_coin::extract(reward_budget, reward_per);
-          reward_deposited = reward_deposited + libra_coin::value(&user_coin);
-          rewards::process_single(root, *addr, user_coin, 1);
-        };
+
+      if (libra_coin::value(reward_budget) >= reward_per) {
+        let user_coin = libra_coin::extract(reward_budget, reward_per);
+        reward_deposited = reward_deposited + libra_coin::value(&user_coin);
+        rewards::process_single(root, *addr, user_coin, 1);
       };
 
       i = i + 1;

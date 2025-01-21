@@ -510,7 +510,6 @@ pub fn get_nickname(acc: AccountAddress) -> String {
 /// Transaction types
 #[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
 #[clap(rename_all = "kebab_case")]
-
 pub enum TxType {
     /// critical txs
     Baseline,

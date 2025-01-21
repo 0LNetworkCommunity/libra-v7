@@ -219,7 +219,6 @@ pub fn generate_key_objects_from_legacy(
 }
 
 /// Testing deterministic hkdf for bls
-
 fn bls_generate_key(ikm: &[u8]) -> anyhow::Result<bls12381::PrivateKey> {
     let priv_key = blst::min_pk::SecretKey::key_gen(ikm, &[])
         .map_err(|e| anyhow!("blst key gen failed: {:?}", e))?;

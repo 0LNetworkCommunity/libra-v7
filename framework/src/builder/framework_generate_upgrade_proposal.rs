@@ -146,11 +146,11 @@ pub fn write_to_file(result: Vec<(String, String)>, proposal_dir: PathBuf) -> an
     Ok(())
 }
 /// Need to create a dummy package so that we can build the script into bytecode
-/// so that we can then get the hash of the script.
-/// ... so that we can then submit it as part of a proposal framework/libra-framework/sources/modified_source/diem_governance.move
-/// ... so that then the VM doesn't complain about its size /diem-move/diem-vm/src/diem_vm_impl.rs
-/// ... and so that when the proposal is approved a third party can execute the source upgrade.
-
+/// so that:
+/// * we can then get the hash of the script.
+/// * then submit it as part of a proposal framework/libra-framework/sources/modified_source/diem_governance.move
+/// * then the VM doesn't complain about its size /diem-move/diem-vm/src/diem_vm_impl.rs
+/// * and so that when the proposal is approved a third party can execute the source upgrade.
 pub fn init_move_dir_wrapper(
     package_dir: PathBuf,
     script_name: &str,

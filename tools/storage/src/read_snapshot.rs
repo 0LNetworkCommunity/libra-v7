@@ -1,5 +1,5 @@
 //! read-archive
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use diem_backup_cli::{
     backup_types::{
         epoch_ending::manifest::EpochEndingBackup, state_snapshot::manifest::StateSnapshotBackup,
@@ -27,10 +27,8 @@ use tokio::{fs::OpenOptions, io::AsyncRead};
 ////// SNAPSHOT FILE IO //////
 /// read snapshot manifest file into object
 pub fn load_snapshot_manifest(path: &Path) -> Result<StateSnapshotBackup, Error> {
-    let config = std::fs::read_to_string(path).map_err(|e| {
-        format!("Error: cannot read file {:?}, error: {:?}", &path, &e);
-        e
-    })?;
+    let config =
+        std::fs::read_to_string(path).context(format!("Error: cannot read file at {:?}", path))?;
 
     let map: StateSnapshotBackup = serde_json::from_str(&config)?;
 

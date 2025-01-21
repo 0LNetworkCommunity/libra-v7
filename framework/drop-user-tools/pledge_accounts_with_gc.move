@@ -336,11 +336,7 @@
 
         fun garbage_collection(pledge_account: &address): u64 acquires MyPledges,
         BeneficiaryPolicy {
-          // print(&5000);
           let pledge_list = get_user_pledges(pledge_account);
-          // print(&pledge_list);
-          // print(&5001);
-          // print(pledge_account);
           let coins = 0;
           let i = 0;
           while (i < vector::length(&pledge_list)) {
@@ -349,14 +345,10 @@
             let hundred_pct = fixed_point64::create_from_rational(1,1);
             let c = withdraw_pct_from_one_pledge_account(bene,
             pledge_account, &hundred_pct);
-            // print(&c);
 
             if (option::is_some(&c)) {
-              // print(&5002);
-
               let coin = option::extract(&mut c);
               coins = coins + coin::value(&coin);
-              // print(&coin);
               burn::burn_and_track(coin);
             };
             option::destroy_none(c);
@@ -367,7 +359,6 @@
             pledge_account);
 
             if (is_found) {
-              // print(&5006);
               vector::remove(&mut bene_state.pledgers, idx);
             };
             i = i + 1;

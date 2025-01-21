@@ -18,8 +18,10 @@ module ol_framework::infra_escrow{
     use ol_framework::ol_account;
     use ol_framework::libra_coin::LibraCoin;
     use ol_framework::pledge_accounts;
+    use ol_framework::testnet;
+    use ol_framework::epoch_helper;
 
-    // use diem_std::debug::print;
+    // use diem_framework::debug::print;
 
     friend diem_framework::genesis;
     friend ol_framework::epoch_boundary;
@@ -27,7 +29,15 @@ module ol_framework::infra_escrow{
     #[test_only]
     friend ol_framework::mock;
 
+
+    /// Not enough supply for genesis reward
     const EGENESIS_REWARD: u64 = 0;
+
+    /// I'm sorry dave, this is only for testing
+    const EWITHDRAW_NOT_ON_MAINNET: u64 = 1;
+
+
+
     /// for use on genesis, creates the infra escrow pledge policy struct
     public(friend) fun initialize(framework: &signer) {
         // NOTE: THIS MUST BE THE 0x0 address, because on epoch boundary it is that address @vm_reserved which will be calling the functions.
@@ -96,9 +106,18 @@ module ol_framework::infra_escrow{
     // and add them with mock.move when we need it.
     public(friend) fun genesis_coin_validator(framework: &signer, to: address) {
       system_addresses::assert_diem_framework(framework);
-      let bootstrap_amount = 1000000000;
-      if (infra_escrow_balance() > bootstrap_amount) {
-        let c_opt = infra_pledge_withdraw(framework, bootstrap_amount);
+      assert!(epoch_helper::get_current_epoch() == 0, EGENESIS_REWARD);
+      let bootstrap_amount = 1_000 * 1_000_000; // 1K times scaling
+      framework_fund_account(framework, to, bootstrap_amount);
+    }
+
+    // DANGER: keep this private, and only used in testnet
+    fun framework_fund_account(framework: &signer, to: address, amount: u64) {
+      system_addresses::assert_diem_framework(framework);
+      assert!(testnet::is_not_mainnet(), error::invalid_state(EWITHDRAW_NOT_ON_MAINNET));
+
+      if (infra_escrow_balance() > amount) {
+        let c_opt = infra_pledge_withdraw(framework, amount);
         assert!(option::is_some(&c_opt), error::invalid_state(EGENESIS_REWARD));
           let coin = option::extract(&mut c_opt);
           ol_account::deposit_coins(to, coin);

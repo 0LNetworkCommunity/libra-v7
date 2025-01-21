@@ -19,7 +19,6 @@ use crate::core::mnemonic::Mnemonic;
 use anyhow::{anyhow, Result};
 use byteorder::{ByteOrder, LittleEndian};
 use hmac::Hmac;
-use mirai_annotations::*;
 use pbkdf2::pbkdf2;
 use serde::{Deserialize, Serialize};
 use std::ops::AddAssign;
@@ -63,8 +62,8 @@ impl ChildNumber {
 
 impl std::ops::AddAssign for ChildNumber {
     fn add_assign(&mut self, other: Self) {
-        assume!(self.0 <= u64::MAX / 2); // invariant
-        assume!(other.0 <= u64::MAX / 2); // invariant
+        // assume!(self.0 <= u64::MAX / 2); // invariant
+        // assume!(other.0 <= u64::MAX / 2); // invariant
         *self = Self(self.0 + other.0)
     }
 }

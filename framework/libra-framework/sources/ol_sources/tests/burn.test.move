@@ -1,7 +1,7 @@
 
 #[test_only]
 module ol_framework::test_burn {
-  use ol_framework::mock;
+  use ol_framework::mock::{Self, default_epoch_reward, default_final_supply_at_genesis, default_entry_fee, default_tx_fee_account_at_genesis};
   use ol_framework::libra_coin;
   use ol_framework::ol_account;
   use ol_framework::match_index;
@@ -73,8 +73,9 @@ module ol_framework::test_burn {
     // EVE donates to both. But mostly to Alice.
     // The Match Index, should reflect that.
 
-    let vals = mock::genesis_n_vals(root, 5); // need to include eve to init funds
-    mock::ol_initialize_coin_and_fund_vals(root, 1000000, true);
+    let vals = mock::genesis_n_vals(root, 5); // need to include eve to init funds)
+
+    mock::ol_initialize_coin_and_fund_vals(root, default_epoch_reward(), true);
     // start at epoch 1, since turnout tally needs epoch info, and 0 may cause issues
     mock::trigger_epoch(root);
 
@@ -137,7 +138,7 @@ module ol_framework::test_burn {
     // The Match Index, should reflect that.
 
     let vals = mock::genesis_n_vals(root, 5); // need to include eve to init funds
-    mock::ol_initialize_coin_and_fund_vals(root, 1000000, true);
+    mock::ol_initialize_coin_and_fund_vals(root, default_epoch_reward(), true);
     // start at epoch 1, since turnout tally needs epoch info, and 0 may cause issues
     mock::trigger_epoch(root);
 
@@ -191,52 +192,72 @@ module ol_framework::test_burn {
     assert!(balance == eve_donation_to_A, 7357006);
   }
 
+
   #[test(root = @ol_framework)]
   fun epoch_fees_burn(root: &signer) {
     // Scenario:
-    // the network starts.
-    // we mock some tx fees going into the collection
-    // the epoch turns and the fee account should be empty
+    // the network starts
+    // we mock some tx fees going into the fee account
+    // validators have ZERO balance, so they cannot pay into tx fee account
+    // the validators perform correctly, and the epoch changes (they
+    // are allowed to continue because of failover rules)
+    // Expected Outcome:
+    // The fees from the previous epoch were used to pay validators.
+    // however there was an excess amount in Tx account, and this amount
+    // would be burned.
+
     // and the supply should be lower
 
     let n_vals = 5;
-    let _vals = mock::genesis_n_vals(root, n_vals); // need to include eve to init funds
-    let genesis_mint = 1_000_000; // 1 coin per
-    let epoch_reward = genesis_mint; // just to be explicit
+    let genesis_balance_per_val = 0; // simplify calcs, no validators funded at start
 
-    mock::ol_initialize_coin_and_fund_vals(root, genesis_mint, true);
+    let exact_amount_for_reward = n_vals * default_epoch_reward();
+    let excess_in_tx_fee_account = 30_000_000;
+
+    let starting_tx_fees = excess_in_tx_fee_account + exact_amount_for_reward;
+
+    let _vals = mock::genesis_n_vals(root, n_vals);
+    mock::ol_initialize_coin_and_fund_vals(root, genesis_balance_per_val, true);
     let supply_pre = libra_coin::supply();
-    let bruce_fortune = 100_000_000_000;
-    let mocked_tx_fees = 5_000_000 * 100; // 100 coins in tx fee account
-    assert!(supply_pre == mocked_tx_fees + bruce_fortune + (n_vals * genesis_mint), 73570001);
+    mock::mock_tx_fees_in_account(root, starting_tx_fees);
 
-    let fees = transaction_fee::system_fees_collected();
-    assert!(fees == mocked_tx_fees, 73570002);
+    // supply at genesis always be equal to final supply
+    assert!(supply_pre == default_final_supply_at_genesis(), 73570001);
+
+    // The only fees in the tX fee account at genesis should be what was mocked by default
+    assert!(transaction_fee::system_fees_collected() == starting_tx_fees, 73570002);
+
+    // no change in supply, since these coins came from infra pledge
+    assert!(libra_coin::supply() == default_final_supply_at_genesis(), 73570003);
 
     // start at epoch 1. NOTE Validators WILL GET PAID FOR EPOCH 1
-    mock::trigger_epoch(root); // under 1000 rounds we don't
-
-    // evaluate performance of validators
-    let fees = transaction_fee::system_fees_collected();
-    // There should be only entry fee left in tx fee wallet
-    assert!(fees == 5_000_000, 73570003);
-
-    let validator_rewards = epoch_reward * n_vals;
-
-    // of the initial supply,
-    // we expect to burn everything which was in the TX FEEs AFTER PAYING VALIDATOR REWARDS
-    let amount_burned_excess_tx_account = mocked_tx_fees - validator_rewards;
-
-    // So the current supply should be lower,
-    // The the old supply was reduced by what was burned (the excess in tx bucket)
-
+    // but they have no balance to contribute to next epochs funds (for simplicity of calcs)
+    let (lifetime_burn_pre, _lifetime_match) = burn::get_lifetime_tracker();
+    mock::trigger_epoch(root);
+    // NOTE: under 1000 rounds we don't evaluate performance of validators
+    let (lifetime_burn_post, _lifetime_match) = burn::get_lifetime_tracker();
+    assert!(lifetime_burn_post > lifetime_burn_pre, 73570004);
+    // supply should be lower
     let supply_post = libra_coin::supply();
-    assert!(supply_post == supply_pre - amount_burned_excess_tx_account, 73570003);
 
-    // this ALSO means that the only supply left in this example
-    // is the rewards to validators from genesis, and from epoch 1
-    // and the bruce fortune used to pledge infra escrow
-    assert!(supply_post == validator_rewards + (n_vals * genesis_mint) + bruce_fortune, 73570003);
+    let fees_account_balance = transaction_fee::system_fees_collected();
+    let infra_pledge_subsidy = n_vals * default_epoch_reward();
+    let entry_fees_total = n_vals * default_entry_fee();
+
+    assert!(supply_post < default_final_supply_at_genesis(), 73570005);
+
+
+    // Now for the follwing epoch the tx fee account should have:
+    // a) the entry fees of validators (they can afford it now)
+    // b) the infra pledge subsidy * vals
+
+    assert!(fees_account_balance == (infra_pledge_subsidy +  entry_fees_total), 73570006);
+
+    // In this scenario
+    // we expect to burn everything which was in the txs after paying validator rewards.
+    // we funded the tx fee account with an excess, beyond what was needed for the validator reward.
+
+    assert!(supply_post == supply_pre - excess_in_tx_fee_account, 73570007);
   }
 
 
@@ -319,9 +340,13 @@ module ol_framework::test_burn {
 
   #[test(root=@ol_framework, alice=@0x1000a)]
   fun track_fees(root: &signer, alice: address) {
-    // use ol_framework::libra_coin;
-    let _vals = mock::genesis_n_vals(root, 1); // need to include eve to init funds
-    mock::ol_initialize_coin_and_fund_vals(root, 10000, true);
+
+    let _vals = mock::genesis_n_vals(root, 1);
+    mock::ol_initialize_coin_and_fund_vals(root, default_epoch_reward(), true);
+    mock::mock_tx_fees_in_account(root, default_tx_fee_account_at_genesis());
+
+    let fees = transaction_fee::system_fees_collected();
+    assert!(fees == default_tx_fee_account_at_genesis(), 7357001);
 
     let marlon_rando = @0x12345;
     ol_account::create_account(root, marlon_rando);
@@ -337,25 +362,37 @@ module ol_framework::test_burn {
     option::destroy_none(coin_option);
 
     let fees = transaction_fee::system_fees_collected();
-    assert!(fees == 500_000_005, 7357001);
-    // Fees will include the initialization by MOCK. ol_initialize_coin_and_fund_vals
+    assert!(fees == (default_tx_fee_account_at_genesis() + rando_money), 7357001);
 
     // marlon is the only fee maker (since genesis)
     let fee_makers = fee_maker::get_fee_makers();
-    // includes 0x1 which makes a deposit on
     assert!(vector::length(&fee_makers)==1, 7357002);
+    let (_found, idx) = vector::index_of(&fee_makers, &marlon_rando);
+    assert!( idx == 0, 7357003);
 
     let marlon_fees_made = fee_maker::get_user_fees_made(marlon_rando);
-    assert!(marlon_fees_made == 5, 7357003);
+    assert!(marlon_fees_made == 5, 7357004);
 
+    let (lifetime_burn_pre, _lifetime_match) = burn::get_lifetime_tracker();
     mock::trigger_epoch(root);
+    // NOTE: under 1000 rounds we don't evaluate performance of validators
+    let (lifetime_burn_post, _lifetime_match) = burn::get_lifetime_tracker();
+    assert!(lifetime_burn_post > lifetime_burn_pre, 0);
 
     let marlon_fees_made = fee_maker::get_user_fees_made(marlon_rando);
-    assert!(marlon_fees_made == 0, 7357004);
+    assert!(marlon_fees_made == 0, 7357005);
+
+    // However, Alice (the only validator) did pay an entry fee during Proof of Fee,
+    // and that fee should be tracked
     let fee_makers = fee_maker::get_fee_makers();
-    assert!(vector::length(&fee_makers) == 0, 7357005);
+
+    assert!(vector::length(&fee_makers) == 1, 7357006);
+    let (_found, idx) = vector::index_of(&fee_makers, &alice);
+    assert!( idx == 0, 7357007);
+
+
     let fees = transaction_fee::system_fees_collected();
-    assert!(fees == 1_000_000, 7357006); // val set entry fee
+    assert!(fees == default_entry_fee() + default_epoch_reward(), 7357008); // val set entry fee
   }
 
   #[test(root = @ol_framework, alice_val = @0x1000a)]
@@ -400,6 +437,7 @@ module ol_framework::test_burn {
     assert!(cumu_burn == 0, 7357004);
 
     // simulate epoch boundary burn
+    mock::mock_tx_fees_in_account(root, 60_000_000);
     let all_fees = transaction_fee::test_root_withdraw_all(root);
     burn::epoch_burn_fees(root, &mut all_fees);
     coin::destroy_zero(all_fees); // destroy the hot potato

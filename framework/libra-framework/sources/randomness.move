@@ -29,8 +29,8 @@ module diem_framework::randomness {
     use std::vector;
     use diem_framework::system_addresses;
     use diem_framework::transaction_context;
-    #[test_only]
-    use diem_std::debug;
+    // #[test_only]
+    // use diem_std::debug;
     #[test_only]
     use diem_std::table_with_length;
 
@@ -450,13 +450,15 @@ module diem_framework::randomness {
     }
 
     #[test(fx = @diem_framework)]
-    fun randomness_smoke_test(fx: signer) acquires PerBlockRandomness {
+    fun randomness_integer(fx: signer) acquires PerBlockRandomness {
         initialize(&fx);
         set_seed(x"0000000000000000000000000000000000000000000000000000000000000000");
         // Test cases should always have no bias for any randomness call.
         // assert!(is_unbiasable(), 0);
         let num = u64_integer();
-        debug::print(&num);
+        assert!(num > 0, 0);
+        let num2 = u64_integer();
+        assert!(num != num2, 1);
     }
 
     // #[test_only]

@@ -199,7 +199,7 @@
     fun maybe_tally<IssueData: drop + store>(t: &mut BinaryTally<IssueData>): Option<bool> {
 
 
-      if (reconfiguration::get_current_epoch() > t.deadline_epoch) {
+      if (reconfiguration::current_epoch() > t.deadline_epoch) {
 
         if (t.votes_for > t.votes_against) {
           t.tally_result = option::some(true);

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 
 use diem_backup_cli::backup_types::transaction::manifest::TransactionBackup;
 use diem_backup_cli::backup_types::transaction::manifest::TransactionChunk;
@@ -13,10 +13,8 @@ use libra_backwards_compatibility::version_five::state_snapshot_v5::open_for_rea
 
 /// read snapshot manifest file into object
 pub fn load_tx_chunk_manifest(path: &Path) -> anyhow::Result<TransactionBackup> {
-    let s = std::fs::read_to_string(path).map_err(|e| {
-        format!("Error: cannot read file {:?}, error: {:?}", &path, &e);
-        e
-    })?;
+    let s =
+        std::fs::read_to_string(path).context(format!("Error: cannot read file at {:?}", path))?;
 
     let map: TransactionBackup = serde_json::from_str(&s)?;
 

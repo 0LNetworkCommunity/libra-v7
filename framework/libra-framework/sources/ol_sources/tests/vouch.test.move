@@ -41,6 +41,8 @@ module ol_framework::test_vouch {
     // fast forward to epoch 1
     mock::trigger_epoch(root);
 
+    vouch::set_vouch_price(root, 0);
+
     // carol vouches for bob
     vouch::vouch_for(carol, @0x1000b);
 
@@ -145,6 +147,8 @@ module ol_framework::test_vouch {
 
     // fast forward to epoch 1
     mock::trigger_epoch(root);
+
+    vouch::set_vouch_price(root, 0);
 
     // alice vouches for bob again
     vouch::vouch_for(alice, @0x1000b);

@@ -16,6 +16,7 @@ module diem_framework::reconfiguration {
 
     // use diem_std::debug::print;
 
+    friend diem_framework::block;
     friend diem_framework::diem_governance;
     friend diem_framework::epoch_boundary;
     friend diem_framework::consensus_config;
@@ -42,6 +43,12 @@ module diem_framework::reconfiguration {
         events: event::EventHandle<NewEpochEvent>,
     }
 
+    /// Convenience struct to hold the epoch interval outside of the block::resource
+    struct EpochInterval has key {
+      epoch_interval: u64
+    }
+
+
     /// Reconfiguration will be disabled if this resource is published under the
     /// diem_framework system address
     struct DisableReconfiguration has key {}
@@ -57,14 +64,6 @@ module diem_framework::reconfiguration {
     /// An invalid block time was encountered.
     const EINVALID_GUID_FOR_EVENT: u64 = 5;
 
-
-    //////// 0L ////////
-    #[view]
-    /// Returns the current epoch number
-    public fun get_current_epoch(): u64 acquires Configuration {
-        let config_ref = borrow_global<Configuration>(@diem_framework);
-        config_ref.epoch
-    }
 
     /// Only called during genesis.
     /// Publishes `Configuration` resource. Can only be invoked by diem framework account, and only a single time in Genesis.
@@ -194,6 +193,49 @@ module diem_framework::reconfiguration {
         );
     }
 
+    /// set the epoch interval on each block
+    public(friend) fun set_epoch_interval(framework: &signer, epoch_interval: u64) acquires EpochInterval {
+      if (!exists<EpochInterval>(@ol_framework)) {
+        move_to(framework, EpochInterval {
+          epoch_interval
+        })
+      } else {
+        let state = borrow_global_mut<EpochInterval>(@ol_framework);
+        state.epoch_interval = epoch_interval
+      }
+    }
+
+    #[view]
+    /// Return epoch interval in seconds.
+    public fun get_epoch_interval_secs(): u64 acquires EpochInterval {
+      let state = borrow_global_mut<EpochInterval>(@ol_framework);
+        state.epoch_interval / 1000000
+    }
+
+    #[view]
+    /// Return rough remaining seconds in epoch
+    public fun get_remaining_epoch_secs(): u64 acquires Configuration, EpochInterval {
+      let now = timestamp::now_seconds();
+      let last_epoch_secs = last_reconfiguration_time() / 1000000;
+      let interval = get_epoch_interval_secs();
+      if (now < last_epoch_secs) { // impossible underflow, some thign bad, or tests
+          return 0
+      };
+
+      let deadline = last_epoch_secs + interval;
+
+      if (now > deadline) { // we've run over the deadline
+        return 0
+      };
+
+      // belt and suspenders
+      if (deadline > now) {
+        return deadline - now
+      };
+
+      return 0
+
+    }
     // For tests, skips the guid validation.
     #[test_only]
     public fun initialize_for_test(account: &signer) {

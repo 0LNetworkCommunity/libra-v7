@@ -161,7 +161,7 @@ module ol_framework::test_stake {
     mock::genesis_n_vals(&root, 6);
     mock::mock_all_vals_good_performance(&root);
     // all validators bid
-    mock::pof_default();
+    mock::pof_default(&root);
 
     // now make Eve not compliant
     let eve = @0x1000e;

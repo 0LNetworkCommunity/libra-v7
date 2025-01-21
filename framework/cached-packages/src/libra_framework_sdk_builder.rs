@@ -13,6 +13,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::doc_lazy_continuation)]
+
 use diem_types::{
     account_address::AccountAddress,
     transaction::{EntryFunction, TransactionPayload},
@@ -487,6 +489,18 @@ pub enum EntryFunctionCall {
         authorities: Vec<AccountAddress>,
     },
 
+    /// Transaction entry function for committing bid
+    SecretBidCommit {
+        digest: Vec<u8>,
+    },
+
+    /// Transaction entry function for revealing bid
+    SecretBidReveal {
+        pk: Vec<u8>,
+        entry_fee: u64,
+        signed_msg: Vec<u8>,
+    },
+
     SlowWalletSmokeTestVmUnlock {
         user_addr: AccountAddress,
         unlocked: u64,
@@ -546,7 +560,7 @@ pub enum EntryFunctionCall {
         friend_account: AccountAddress,
     },
 
-    /// will only succesfully vouch if the two are not related by ancestry
+    /// will only successfully vouch if the two are not related by ancestry
     /// prevents spending a vouch that would not be counted.
     /// to add a vouch and ignore this check use insist_vouch
     VouchVouchFor {
@@ -819,6 +833,12 @@ impl EntryFunctionCall {
                 epoch_expiry,
             } => proof_of_fee_pof_update_bid_net_reward(net_reward, epoch_expiry),
             SafeInitPaymentMultisig { authorities } => safe_init_payment_multisig(authorities),
+            SecretBidCommit { digest } => secret_bid_commit(digest),
+            SecretBidReveal {
+                pk,
+                entry_fee,
+                signed_msg,
+            } => secret_bid_reveal(pk, entry_fee, signed_msg),
             SlowWalletSmokeTestVmUnlock {
                 user_addr,
                 unlocked,
@@ -2197,6 +2217,42 @@ pub fn safe_init_payment_multisig(authorities: Vec<AccountAddress>) -> Transacti
     ))
 }
 
+/// Transaction entry function for committing bid
+pub fn secret_bid_commit(digest: Vec<u8>) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("secret_bid").to_owned(),
+        ),
+        ident_str!("commit").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&digest).unwrap()],
+    ))
+}
+
+/// Transaction entry function for revealing bid
+pub fn secret_bid_reveal(pk: Vec<u8>, entry_fee: u64, signed_msg: Vec<u8>) -> TransactionPayload {
+    TransactionPayload::EntryFunction(EntryFunction::new(
+        ModuleId::new(
+            AccountAddress::new([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1,
+            ]),
+            ident_str!("secret_bid").to_owned(),
+        ),
+        ident_str!("reveal").to_owned(),
+        vec![],
+        vec![
+            bcs::to_bytes(&pk).unwrap(),
+            bcs::to_bytes(&entry_fee).unwrap(),
+            bcs::to_bytes(&signed_msg).unwrap(),
+        ],
+    ))
+}
+
 pub fn slow_wallet_smoke_test_vm_unlock(
     user_addr: AccountAddress,
     unlocked: u64,
@@ -2389,7 +2445,7 @@ pub fn vouch_revoke(friend_account: AccountAddress) -> TransactionPayload {
     ))
 }
 
-/// will only succesfully vouch if the two are not related by ancestry
+/// will only successfully vouch if the two are not related by ancestry
 /// prevents spending a vouch that would not be counted.
 /// to add a vouch and ignore this check use insist_vouch
 pub fn vouch_vouch_for(friend_account: AccountAddress) -> TransactionPayload {
@@ -3160,6 +3216,28 @@ mod decoder {
         }
     }
 
+    pub fn secret_bid_commit(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SecretBidCommit {
+                digest: bcs::from_bytes(script.args().first()?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn secret_bid_reveal(payload: &TransactionPayload) -> Option<EntryFunctionCall> {
+        if let TransactionPayload::EntryFunction(script) = payload {
+            Some(EntryFunctionCall::SecretBidReveal {
+                pk: bcs::from_bytes(script.args().first()?).ok()?,
+                entry_fee: bcs::from_bytes(script.args().get(1)?).ok()?,
+                signed_msg: bcs::from_bytes(script.args().get(2)?).ok()?,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn slow_wallet_smoke_test_vm_unlock(
         payload: &TransactionPayload,
     ) -> Option<EntryFunctionCall> {
@@ -3532,6 +3610,14 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<EntryFunctionDecoderMa
         map.insert(
             "safe_init_payment_multisig".to_string(),
             Box::new(decoder::safe_init_payment_multisig),
+        );
+        map.insert(
+            "secret_bid_commit".to_string(),
+            Box::new(decoder::secret_bid_commit),
+        );
+        map.insert(
+            "secret_bid_reveal".to_string(),
+            Box::new(decoder::secret_bid_reveal),
         );
         map.insert(
             "slow_wallet_smoke_test_vm_unlock".to_string(),

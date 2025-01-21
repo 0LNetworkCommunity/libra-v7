@@ -38,6 +38,8 @@ module ol_framework::ol_account {
     friend ol_framework::test_multi_action;
     #[test_only]
     friend ol_framework::test_slow_wallet;
+    #[test_only]
+    friend ol_framework::mock;
 
     /// Account does not exist.
     const EACCOUNT_NOT_FOUND: u64 = 1;
@@ -182,7 +184,6 @@ module ol_framework::ol_account {
 
         let sig_addr = signer::address_of(&new_signer);
         if (lookup_addr != sig_addr) {
-          // print(&lookup_addr);
           print(&sig_addr);
         };
 

@@ -321,7 +321,7 @@ impl GenesisWizard {
     fn _download_snapshot(&mut self, _app_cfg: &AppCfg) -> anyhow::Result<PathBuf> {
         if let Some(e) = self.epoch {
             if !Confirm::new()
-                .with_prompt(&format!("So are we migrating data from epoch {}?", e))
+                .with_prompt(format!("So are we migrating data from epoch {}?", e))
                 .interact()
                 .unwrap()
             {

@@ -30,6 +30,8 @@ module ol_framework::burn {
   friend ol_framework::make_whole;
 
   #[test_only]
+  friend ol_framework::mock;
+  #[test_only]
   friend ol_framework::test_burn;
   #[test_only]
   friend ol_framework::test_rewards;

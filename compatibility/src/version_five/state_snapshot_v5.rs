@@ -1,4 +1,7 @@
-//! read-archive
+//! state_snapshot
+
+// legacy code from diem, clippy warnings since 1.80
+#![allow(clippy::doc_lazy_continuation)]
 
 use crate::version_five::{account_blob_v5::AccountStateBlob, hash_value_v5::HashValueV5};
 
@@ -45,10 +48,8 @@ pub struct AccountStateBlobRecord(HashValueV5, AccountStateBlob);
 ////// SNAPSHOT FILE IO //////
 /// read snapshot manifest file into struct
 pub fn v5_read_from_snapshot_manifest(path: &Path) -> Result<StateSnapshotBackupV5, Error> {
-    let config = std::fs::read_to_string(path).map_err(|e| {
-        format!("Error: cannot read file {:?}, error: {:?}", &path, &e);
-        e
-    })?;
+    let config =
+        std::fs::read_to_string(path).context(format!("Error: cannot read file at {:?}", &path))?;
 
     let map: StateSnapshotBackupV5 = serde_json::from_str(&config)?;
 

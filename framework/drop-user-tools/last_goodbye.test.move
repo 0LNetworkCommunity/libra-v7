@@ -14,7 +14,7 @@ module ol_framework::test_last_goodbye {
 
     let _vals = mock::genesis_n_vals(framework, 1);
     // we are at epoch 0
-    let epoch = reconfiguration::get_current_epoch();
+    let epoch = reconfiguration::current_epoch();
     assert!(epoch == 0, 7357001);
 
     last_goodbye::danger_test_last_goodby(vm, bob);
@@ -23,7 +23,7 @@ module ol_framework::test_last_goodbye {
     last_goodbye::danger_user_gc(vm, bob);
 
     mock::trigger_epoch(framework); // epoch 1
-    let epoch = reconfiguration::get_current_epoch();
+    let epoch = reconfiguration::current_epoch();
     assert!(epoch == 1, 7357002);
 
     let vals = stake::get_current_validators();

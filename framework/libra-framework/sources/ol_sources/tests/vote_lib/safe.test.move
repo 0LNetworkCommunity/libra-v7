@@ -93,14 +93,15 @@ module ol_framework::test_safe {
   fun safe_root_security_fee(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
 
     let vals = mock::genesis_n_vals(root, 3);
-    mock::ol_initialize_coin_and_fund_vals(root, 1000000000000, true);
+    let balance = 100_000_000;
+    mock::ol_initialize_coin_and_fund_vals(root, balance, true);
     // Dave creates the resource account. HE is not one of the validators, and is not an authority in the multisig.
     let (resource_sig, _cap) = ol_account::test_ol_create_resource_account(dave, b"0x1");
     let new_resource_address = signer::address_of(&resource_sig);
     assert!(resource_account::is_resource_account(new_resource_address), 0);
-    
+
     safe::init_payment_multisig(&resource_sig, vals); // requires 3
-    
+
     // vals claim the offer
     multi_action::claim_offer(alice, new_resource_address);
     multi_action::claim_offer(bob, new_resource_address);
@@ -110,9 +111,12 @@ module ol_framework::test_safe {
     multi_action::finalize_and_cage(&resource_sig, 2);
 
     // fund the account
-    ol_account::transfer(alice, new_resource_address, 1000000);
+    ol_account::transfer(alice, new_resource_address, 100_000);
     let (_, bal) = ol_account::balance(new_resource_address);
+
     mock::trigger_epoch(root);
+
+    // Use of Safe should debit the account at epoch boundary
     let (_, new_bal) = ol_account::balance(new_resource_address);
     assert!(new_bal < bal, 735701);
   }

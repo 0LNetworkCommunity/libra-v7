@@ -13,6 +13,9 @@
 #![allow(clippy::unnecessary_wraps)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+// legacy code from diem, clippy warnings since 1.80
+#![allow(clippy::doc_lazy_continuation)]
+#![allow(clippy::empty_line_after_doc_comments)]
 use crate::version_five::{
     language_storage_v5::{ModuleIdV5 as ModuleId, TypeTagV5 as TypeTag},
     legacy_address_v5::LegacyAddressV5 as AccountAddress,
@@ -4421,7 +4424,6 @@ pub fn encode_create_child_vasp_account_script_function(
 /// | `human_name`         | `vector<u8>` | ASCII-encoded human name for the Designated Dealer.                                                                                                 |
 /// | `add_all_currencies` | `bool`       | Whether to publish preburn, balance, and tier info resources for all known (SCS) currencies or just `Currency` when the account is created.         |
 ///
-
 /// # Common Abort Conditions
 /// | Error Category              | Error Reason                            | Description                                                                                |
 /// | ----------------            | --------------                          | -------------                                                                              |
@@ -4695,9 +4697,7 @@ pub fn encode_create_validator_account_script_function(
 /// # Events
 /// Successful execution will emit:
 /// * A `DiemAccount::CreateAccountEvent` with the `created` field being `new_account_address`,
-/// and the `rold_id` field being `Roles::VALIDATOR_OPERATOR_ROLE_ID`. This is emitted on the
-/// `DiemAccount::AccountOperationsCapability` `creation_events` handle.
-///
+/// and the `rold_id` field being `Roles::VALIDATOR_OPERATOR_ROLE_ID`. This is emitted on the `DiemAccount::AccountOperationsCapability` `creation_events` handle.
 /// # Parameters
 /// | Name                  | Type         | Description                                                                              |
 /// | ------                | ------       | -------------                                                                            |
@@ -5058,11 +5058,9 @@ pub fn encode_peer_to_peer_with_metadata_script_function(
 ///
 /// # Events
 /// Successful execution of this script emits two events:
-/// * `DiemAccount::SentPaymentEvent ` on `account`'s `DiemAccount::DiemAccount` `sent_events`
-/// handle with the `payee` and `payer` fields being `account`'s address; and
+/// * `DiemAccount::SentPaymentEvent ` on `account`'s `DiemAccount::DiemAccount` `sent_events` handle with the `payee` and `payer` fields being `account`'s address; and
 /// * A `Diem::PreburnEvent` with `Token`'s currency code on the
-/// `Diem::CurrencyInfo<Token`'s `preburn_events` handle for `Token` and with
-/// `preburn_address` set to `account`'s address.
+/// `Diem::CurrencyInfo<Token`'s `preburn_events` handle for `Token` and with `preburn_address` set to `account`'s address.
 ///
 /// # Parameters
 /// | Name      | Type     | Description                                                                                                                      |
@@ -5504,9 +5502,7 @@ pub fn encode_rotate_authentication_key_with_recovery_address_script_function(
 ///
 /// # Events
 /// Successful execution of this transaction emits two events:
-/// * A `DualAttestation::ComplianceKeyRotationEvent` containing the new compliance public key, and
-/// the blockchain time at which the key was updated emitted on the `DualAttestation::Credential`
-/// `compliance_key_rotation_events` handle published under `account`; and
+/// * A `DualAttestation::ComplianceKeyRotationEvent` containing the new compliance public key, and the blockchain time at which the key was updated emitted on the `DualAttestation::Credential` `compliance_key_rotation_events` handle published under `account`; and
 /// * A `DualAttestation::BaseUrlRotationEvent` containing the new base url to be used for
 /// off-chain communication, and the blockchain time at which the url was updated emitted on the
 /// `DualAttestation::Credential` `base_url_rotation_events` handle published under `account`.
@@ -6543,11 +6539,9 @@ pub fn encode_cancel_burn_script(token: TypeTag, preburn_address: AccountAddress
 /// ## Events
 /// Successful execution with a `child_initial_balance` greater than zero will emit:
 /// * A `DiemAccount::SentPaymentEvent` with the `payer` field being the Parent VASP's address,
-/// and payee field being `child_address`. This is emitted on the Parent VASP's
-/// `DiemAccount::DiemAccount` `sent_events` handle.
+/// and payee field being `child_address`. This is emitted on the Parent VASP's `DiemAccount::DiemAccount` `sent_events` handle.
 /// * A `DiemAccount::ReceivedPaymentEvent` with the  `payer` field being the Parent VASP's address,
-/// and payee field being `child_address`. This is emitted on the new Child VASPS's
-/// `DiemAccount::DiemAccount` `received_events` handle.
+/// and payee field being `child_address`. This is emitted on the new Child VASPS's `DiemAccount::DiemAccount` `received_events` handle.
 ///
 /// # Parameters
 /// | Name                    | Type         | Description                                                                                                                                 |

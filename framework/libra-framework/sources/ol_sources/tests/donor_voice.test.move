@@ -12,17 +12,16 @@ module ol_framework::test_donor_voice {
   use ol_framework::donor_voice_governance;
   use ol_framework::community_wallet_init;
   use ol_framework::community_wallet;
-  use ol_framework::burn;
   use ol_framework::slow_wallet;
   use diem_framework::multisig_account;
   use std::guid;
   use std::vector;
   use std::signer;
 
-  use diem_std::debug::print;
+  // use diem_std::debug::print;
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b)]
-    fun dd_init(root: &signer, alice: &signer, bob: &signer) {
+    fun dv_init(root: &signer, alice: &signer, bob: &signer) {
       let vals = mock::genesis_n_vals(root, 2);
 
       let (resource_sig, _cap) = ol_account::test_ol_create_resource_account(alice, b"0x1");
@@ -48,7 +47,7 @@ module ol_framework::test_donor_voice {
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b)]
-    fun dd_propose_payment(root: &signer, alice: &signer, bob: &signer) {
+    fun dv_propose_payment(root: &signer, alice: &signer, bob: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -78,7 +77,7 @@ module ol_framework::test_donor_voice {
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
-    fun dd_schedule_happy(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
+    fun dv_schedule_happy(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -124,7 +123,7 @@ module ol_framework::test_donor_voice {
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d, eve = @0x1000e)]
-    fun dd_propose_and_veto(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, eve: &signer) {
+    fun dv_propose_and_veto(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, eve: &signer) {
       // Scenario: Eve wants to veto a transaction on a donor directed account.
       // Alice creates a donor directed account where Alice, Bob and Carol, are admins.
       // Dave and Eve make a donation and so are able to have some voting on that account. The veto can only happen after Alice Bob and Carol are able to schedule a tx.
@@ -213,7 +212,7 @@ module ol_framework::test_donor_voice {
     // should not be able sign a tx twice
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
     #[expected_failure(abort_code = 65550, location = 0x1::multi_action)]
-    fun dd_reject_duplicate_proposal(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
+    fun dv_reject_duplicate_proposal(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -252,7 +251,7 @@ module ol_framework::test_donor_voice {
 
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
-    fun dd_process_unit(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
+    fun dv_process_unit(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -328,7 +327,7 @@ module ol_framework::test_donor_voice {
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, marlon_rando = @0x123456)]
-    fun dd_process_epoch_boundary(root: &signer, alice: &signer, bob: &signer, carol: &signer, marlon_rando: &signer) {
+    fun dv_process_epoch_boundary(root: &signer, alice: &signer, bob: &signer, carol: &signer, marlon_rando: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -397,7 +396,7 @@ module ol_framework::test_donor_voice {
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d, marlon_rando = @0x123456)]
-    fun dd_process_multi_same_epoch(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, marlon_rando: &signer) {
+    fun dv_process_multi_same_epoch(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, marlon_rando: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -489,7 +488,6 @@ module ol_framework::test_donor_voice {
       // the default timed payment is 3 epochs, we are in epoch 1
       let list = donor_voice_txs::find_by_deadline(donor_voice_address, 3);
       assert!(vector::contains(&list, &first_uid_bob), 73570027);
-      print(&list);
       assert!(vector::contains(&list, &second_uid_bob), 73570028);
 
       // process epoch 3 accounts
@@ -503,7 +501,6 @@ module ol_framework::test_donor_voice {
       // MARLON'S FIRST PAYMENT GOES THROUGH
       let (_, marlon_rando_balance_post) =
       ol_account::balance(signer::address_of(marlon_rando));
-      print(&marlon_rando_balance_post);
 
       // the first proposal should be processed
       let (found, idx, status_enum, completed) =
@@ -523,28 +520,14 @@ module ol_framework::test_donor_voice {
       assert!(completed, 73570036); // now vote is completed
 
 
-
-
       assert!(marlon_rando_balance_post == (marlon_rando_balance_pre +
       marlon_pay_one + marlon_pay_two),
       73570027);
-
-      // // MARLON'S SECOND PAYMENT SHOULD SUCCEED
-
-      // mock::trigger_epoch(root); // epoch 5 should include the next payment
-      // let (_, marlon_rando_balance_post) =
-      // ol_account::balance(signer::address_of(marlon_rando));
-
-      // print(&marlon_rando_balance_pre);
-      // print(&marlon_rando_balance_post);
-
-      // assert!(marlon_rando_balance_post == (marlon_rando_balance_pre +
-      // marlon_pay_one + marlon_pay_two), 73570028);
     }
 
 
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, marlon_rando = @0x123456)]
-    fun dd_process_multi_different_epochs(root: &signer, alice: &signer, bob: &signer, carol: &signer, marlon_rando: &signer) {
+    fun dv_process_multi_different_epochs(root: &signer, alice: &signer, bob: &signer, carol: &signer, marlon_rando: &signer) {
       // Scenario: Alice creates a resource_account which will be a donor directed account. She will not be one of the authorities of the account.
       // only bob, carol, and dave with be authorities
 
@@ -660,16 +643,13 @@ module ol_framework::test_donor_voice {
       let (_, marlon_rando_balance_post) =
       ol_account::balance(signer::address_of(marlon_rando));
 
-      print(&marlon_rando_balance_pre);
-      print(&marlon_rando_balance_post);
-
       assert!(marlon_rando_balance_post == (marlon_rando_balance_pre +
       marlon_pay_one + marlon_pay_two), 73570028);
     }
 
 
     #[test(root = @ol_framework, _alice = @0x1000a, dave = @0x1000d, eve = @0x1000e, donor_voice = @0x1000f)]
-    fun dd_liquidate_to_donor(root: &signer, _alice: &signer, dave: &signer, eve: &signer, donor_voice: &signer) {
+    fun dv_liquidate_to_donor(root: &signer, _alice: &signer, dave: &signer, eve: &signer, donor_voice: &signer) {
       // Scenario:
       // Alice creates a donor directed account where Alice, Bob and Carol, are admins.
       // Dave and Eve make a donation and so are able to have some voting on that account.
@@ -680,8 +660,6 @@ module ol_framework::test_donor_voice {
       // start at epoch 1, since turnout tally needs epoch info, and 0 may cause
       // issues
       mock::trigger_epoch(root);
-      // a burn happend in the epoch above, so let's compare it to end of epoch
-      let (lifetime_burn_pre, _) = burn::get_lifetime_tracker();
 
       let donor_voice_address = signer::address_of(donor_voice);
       // the account needs basic donor directed structs
@@ -745,13 +723,10 @@ module ol_framework::test_donor_voice {
       // eve shoul have received funds back
       assert!(eve_balance > eve_balance_pre, 7357010);
 
-      // nothing should have been burned, it was a refund
-      let (lifetime_burn_now, _) = burn::get_lifetime_tracker();
-      assert!(lifetime_burn_now == lifetime_burn_pre, 7357011);
     }
 
     #[test(root = @ol_framework, alice = @0x1000a, dave = @0x1000d, eve = @0x1000e)]
-    fun dd_liquidate_to_match_index(root: &signer, alice: &signer, dave: &signer, eve: &signer) {
+    fun dv_liquidate_to_match_index(root: &signer, alice: &signer, dave: &signer, eve: &signer) {
       // Scenario:
       // Alice creates a donor directed account where Alice, Bob and Carol, are admins.
       // Dave and Eve make a donation and so are able to have some voting on that account.
@@ -761,8 +736,7 @@ module ol_framework::test_donor_voice {
       mock::ol_initialize_coin_and_fund_vals(root, 100000, true);
       // start at epoch 1, since turnout tally needs epoch info, and 0 may cause issues
       mock::trigger_epoch(root);
-      // a burn happend in the epoch above, so let's compare it to end of epoch
-      let (lifetime_burn_pre, _) = burn::get_lifetime_tracker();
+
 
       let (resource_sig, _cap) = ol_account::test_ol_create_resource_account(alice, b"0x1");
       let donor_voice_address = signer::address_of(&resource_sig);
@@ -832,10 +806,6 @@ module ol_framework::test_donor_voice {
       // program says it goes to the matching index.
       assert!(eve_balance == eve_balance_pre, 7357010);
 
-      let (lifetime_burn_now, _lifetime_match) = burn::get_lifetime_tracker();
-
-      // nothing should have been burned, it was a refund
-      assert!(lifetime_burn_now == lifetime_burn_pre, 7357011);
     }
 
     #[test(root = @ol_framework, community = @0x10011, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c)]

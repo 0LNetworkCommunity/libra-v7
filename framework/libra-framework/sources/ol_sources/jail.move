@@ -49,7 +49,7 @@ module ol_framework::jail {
   use ol_framework::address_utils;
 
   friend ol_framework::validator_universe;
-  friend ol_framework::epoch_boundary;
+  friend ol_framework::musical_chairs;
 
   #[test_only]
   friend ol_framework::test_pof;
@@ -62,7 +62,6 @@ module ol_framework::jail {
   const EVALIDATOR_CONFIG: u64 = 1;
   /// You are not a validator in the current set, you can't unjail anyone.
   const EVOUCHER_NOT_IN_SET: u64 = 2;
-
   /// You not actually a valid voucher for this user. Did it expire?
   const EU_NO_VOUCHER: u64 = 3;
 

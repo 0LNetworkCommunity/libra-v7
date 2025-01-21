@@ -5,7 +5,7 @@ module ol_framework::test_slow_wallet {
   use diem_framework::stake;
   use diem_framework::account;
   use ol_framework::slow_wallet;
-  use ol_framework::mock;
+  use ol_framework::mock::{Self, default_tx_fee_account_at_genesis};
   use ol_framework::ol_account;
   use ol_framework::libra_coin;
   use ol_framework::epoch_boundary;
@@ -18,7 +18,7 @@ module ol_framework::test_slow_wallet {
   use std::vector;
   use std::signer;
 
-   use diem_std::debug::print;
+  //  use diem_std::debug::print;
 
   #[test(root = @ol_framework)]
   // we are testing that genesis creates the needed struct
@@ -111,24 +111,28 @@ module ol_framework::test_slow_wallet {
   #[test(root = @ol_framework)]
   fun test_epoch_drip(root: signer) {
     let set = mock::genesis_n_vals(&root, 4);
-    mock::ol_initialize_coin_and_fund_vals(&root, 100, false);
+    let should_drip = false;
+    mock::ol_initialize_coin_and_fund_vals(&root, 100, should_drip);
+    mock::mock_tx_fees_in_account(&root, default_tx_fee_account_at_genesis());
 
     let a = *vector::borrow(&set, 0);
     assert!(slow_wallet::is_slow(a), 7357000);
-    assert!(slow_wallet::unlocked_amount(a) == 100, 735701);
+    // mock:: does not drip by default
+    assert!(slow_wallet::unlocked_amount(a) == 0, 735701);
 
     let coin = transaction_fee::test_root_withdraw_all(&root);
     rewards::test_helper_pay_reward(&root, a, coin, 0);
 
-    let (u, b) = ol_account::balance(a);
-    print(&b);
-    assert!(b==500_000_100, 735702);
-    assert!(u==100, 735703);
+    let (unlocked, total_balance) = ol_account::balance(a);
+
+    assert!(total_balance == (default_tx_fee_account_at_genesis() + 100), 735702);
+    assert!(unlocked == 0, 735703);
 
     slow_wallet::slow_wallet_epoch_drip(&root, 233);
-    let (u, b) = ol_account::balance(a);
-    assert!(b==500_000_100, 735704);
-    assert!(u==333, 735705);
+    let (unlocked, total_balance) = ol_account::balance(a);
+    // no change total balances
+    assert!(total_balance==(default_tx_fee_account_at_genesis() + 100), 735704);
+    assert!(unlocked==233, 735705);
   }
 
   #[test(root = @ol_framework, alice = @0x123, bob = @0x456)]
@@ -187,9 +191,6 @@ module ol_framework::test_slow_wallet {
     // slow transfer
     let b_balance = libra_coin::balance(@0x456);
     assert!(b_balance == transfer_amount, 735704);
-    // print(&alice_init_balance);
-    // print(&transfer_amount);
-    // print(&slow_wallet::unlocked_amount(@0x123));
 
     assert!(slow_wallet::unlocked_amount(@0x123) == (alice_init_balance - transfer_amount), 735705);
     assert!(slow_wallet::unlocked_amount(@0x456) == transfer_amount, 735706);
@@ -238,7 +239,7 @@ module ol_framework::test_slow_wallet {
     // mock::ol_initialize_coin(&root);
     let a = vector::borrow(&set, 0);
     assert!(slow_wallet::unlocked_amount(*a) == 0, 735701);
-    epoch_boundary::ol_reconfigure_for_test(&root, reconfiguration::get_current_epoch(), block::get_current_block_height())
+    epoch_boundary::ol_reconfigure_for_test(&root, reconfiguration::current_epoch(), block::get_current_block_height())
 
   }
 

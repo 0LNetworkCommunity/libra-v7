@@ -34,6 +34,13 @@ module ol_framework::testnet {
     }
 
     #[test_only]
+    public fun initialize(vm: &signer) {
+      use diem_framework::system_addresses;
+      system_addresses::assert_ol(vm);
+      chain_id::initialize_for_test(vm, 4);
+    }
+
+    #[test_only]
     public fun unset(vm: &signer) {
       use diem_framework::system_addresses;
       system_addresses::assert_ol(vm);

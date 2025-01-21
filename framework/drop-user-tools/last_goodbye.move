@@ -95,26 +95,15 @@ module ol_framework::last_goodbye {
       return
     };
 
-    // print(&2000);
-
     // dangling state in receipts could allow user to participate in community
     // wallets
-        // print(&2002);
-
     receipts::hard_fork_sanitize(vm, user);
-            // print(&2003);
-
     jail::garbage_collection(user);
-            // print(&2004);
-
     vouch::hard_fork_sanitize(vm, user);
-            // print(&2005);
 
-    let locked = slow_wallet::hard_fork_sanitize(vm, user);
-    if (locked > 0) {
-      print(&user_addr);
-      print(&locked);
-    };
+
+    let _locked = slow_wallet::hard_fork_sanitize(vm, user);
+
 
     // remove a pledge account if there is one, so that coins there are
     // not dangling
@@ -138,20 +127,11 @@ module ol_framework::last_goodbye {
       let good_capital = option::extract(&mut all_coins_opt);
       burn::burn_and_track(good_capital);
     };
-    // print(&2001);
 
     option::destroy_none(all_coins_opt);
 
-
-    // if (coin_val > 0) {
-    //   print(&user_addr);
-    //   print(&coin_val);
-    // };
-
-
     let auth_key = b"Oh, is it too late now to say sorry?";
     vector::trim(&mut auth_key, 32);
-        // print(&2008);
 
     // Oh, is it too late now to say sorry?
     // Yeah, I know that I let you down
@@ -161,22 +141,17 @@ module ol_framework::last_goodbye {
     // another function can be called to drop the account::Account completely
     // and then the offline db tools can safely remove the key from db.
     account::rotate_authentication_key_internal(user, auth_key);
-            // print(&2009);
 
   }
 
   fun last_goodbye(vm: &signer, user: &signer) {
-    // print(&10000);
     let addr = signer::address_of(user);
     if (!account::exists_at(addr)) {
-      // print(&addr);
       return
     };
 
     let auth_orig = account::get_authentication_key(addr);
-    // print(&10001);
     dont_think_twice_its_alright(vm, user);
-    // print(&10002);
 
     let new_auth = account::get_authentication_key(addr);
     // if the account is a validator they stay on ark a
@@ -189,12 +164,8 @@ module ol_framework::last_goodbye {
       // Just hear this and then I'll go
       // You gave me more to live for
       // More than you'll ever know
-          // print(&10003);
+
       account::hard_fork_drop(vm, user);
-          // print(&10004);
-
-
-      // print(&@0xDEAD);
   }
 
   #[test_only]

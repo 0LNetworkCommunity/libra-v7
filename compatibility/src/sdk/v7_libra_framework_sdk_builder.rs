@@ -19,7 +19,7 @@
 
 #![allow(dead_code)]
 #![allow(unused_imports)]
-#![allow(clippy::too_many_arguments)]
+#![allow(clippy::too_many_arguments, clippy::doc_lazy_continuation)]
 use diem_types::{
     account_address::AccountAddress,
     transaction::{EntryFunction, TransactionPayload},
@@ -44,8 +44,8 @@ type Bytes = Vec<u8>;
 // explorer and data warehouse
 //////// end ////////
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-#[cfg_attr(feature = "fuzzing", derive(proptest_derive::Arbitrary))]
-#[cfg_attr(feature = "fuzzing", proptest(no_params))]
+// #[cfg_attr(feature = "fuzzing", derive(proptest_derive::Arbitrary))]
+// #[cfg_attr(feature = "fuzzing", proptest(no_params))]
 pub enum EntryFunctionCall {
     /// Offers rotation capability on behalf of `account` to the account at address `recipient_address`.
     /// An account can delegate its rotation capability to only one other address at one time. If the account

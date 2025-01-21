@@ -115,10 +115,6 @@ spec diem_framework::block {
         ensures block_resource.epoch_interval == new_epoch_interval;
     }
 
-    spec get_epoch_interval_secs(): u64 {
-        aborts_if !exists<BlockResource>(@diem_framework);
-    }
-
     spec get_current_block_height(): u64 {
         aborts_if !exists<BlockResource>(@diem_framework);
     }

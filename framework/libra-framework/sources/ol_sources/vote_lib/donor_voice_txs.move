@@ -55,7 +55,7 @@ module ol_framework::donor_voice_txs {
     use ol_framework::donor_voice;
     use ol_framework::slow_wallet;
 
-    use diem_std::debug::print;
+    // use diem_std::debug::print;
 
     friend ol_framework::community_wallet_init;
     friend ol_framework::epoch_boundary;
@@ -343,14 +343,9 @@ module ol_framework::donor_voice_txs {
       let list = &mut state.scheduled;
       let split_point = vector::stable_partition<TimedTransfer>(list, |e| {
         let e: &TimedTransfer = e;
-        // &tt.deadline > epoch
-        // print(&tt.uid);
-        print(&e.deadline);
-        print(&epoch);
         e.deadline > epoch
       });
-     print(&split_point);
-    //  vector::empty()
+
       vector::trim(&mut state.scheduled, split_point)
     }
 
@@ -364,7 +359,6 @@ module ol_framework::donor_voice_txs {
       let i = 0;
 
       let due_list = filter_scheduled_due(state, epoch);
-      print(&due_list);
 
       // find all Txs scheduled prior to this epoch.
       let len = vector::length(&due_list);
@@ -386,13 +380,8 @@ module ol_framework::donor_voice_txs {
           amount_transferred = coin::value(&c);
           ol_account::vm_deposit_coins_locked(vm, t.tx.payee, c);
           // update the records (don't copy or drop)
-          print(&state.scheduled);
-          print(&state.paid);
-
 
           vector::push_back(&mut state.paid, t);
-          print(&state.scheduled);
-          print(&state.paid);
         } else {
           // if it could not be paid because of low balance,
           // place it back on the scheduled list

@@ -9,7 +9,7 @@
 use anyhow::{bail, Result};
 #[cfg(test)]
 use diem_temppath::TempPath;
-use mirai_annotations::*;
+// use mirai_annotations::*; // TODO: enable mirai
 #[cfg(test)]
 use rand::rngs::OsRng;
 #[cfg(test)]
@@ -171,7 +171,7 @@ struct U11BitWriter {
 impl U11BitWriter {
     /// Create a new `BitWriter` around the given writer.
     fn new(mnemonic_len: usize) -> U11BitWriter {
-        precondition!(mnemonic_len <= 24);
+        // precondition!(mnemonic_len <= 24);
         U11BitWriter {
             bytes: Vec::with_capacity(11 * mnemonic_len / 8 + 1),
             unused: 8,
@@ -201,7 +201,8 @@ impl U11BitWriter {
             nbits_remaining -= 8;
             self.bytes.push((value >> nbits_remaining) as u8);
         }
-        verify!(nbits_remaining < 8);
+
+        // verify!(nbits_remaining < 8);
 
         // Put the remaining bits in the buffer.
         if nbits_remaining > 0 {
@@ -222,7 +223,7 @@ impl U11BitWriter {
 const MASKS: [u16; 8] = [0, 0b1, 0b11, 0b111, 0b1111, 0b11111, 0b11_1111, 0b111_1111];
 
 // TODO: update this to hashmap or trie.
-const WORDS: [&str; 2048] = [
+static WORDS: [&str; 2048] = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd",
     "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire",
     "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address",

@@ -124,7 +124,7 @@ impl GovernanceScript {
             }
             println!("A governance script dir does not exist here.");
             if dialoguer::Confirm::new()
-                .with_prompt(&format!(
+                .with_prompt(format!(
                     "create a script template at {:?}",
                     &self.script_dir.display()
                 ))

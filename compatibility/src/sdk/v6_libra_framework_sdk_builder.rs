@@ -20,6 +20,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
+// legacy code from diem, clippy warnings since 1.80
+#![allow(clippy::doc_lazy_continuation)]
 use diem_types::{
     account_address::AccountAddress,
     transaction::{EntryFunction, TransactionPayload},

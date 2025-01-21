@@ -114,11 +114,6 @@ use std::{
 };
 use tiny_keccak::{Hasher, Sha3};
 
-/// A prefix used to begin the salt of every diem hashable structure. The salt
-/// consists in this global prefix, concatenated with the specified
-/// serialization name of the struct.
-// pub(crate) const DIEM_HASH_PREFIX: &[u8] = b"DIEM::";
-
 /// Output value of our hash function. Intentionally opaque for safety and modularity.
 #[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct HashValueV5 {
@@ -269,7 +264,7 @@ impl HashValueV5 {
     /// generating basic mock hash values.
     ///
     /// Ex: HashValue::from_u64(0x1234) => HashValue([0, .., 0, 0x12, 0x34])
-    #[cfg(any(test, feature = "fuzzing"))]
+    #[cfg(test)]
     pub fn from_u64(v: u64) -> Self {
         let mut hash = [0u8; Self::LENGTH];
         let bytes = v.to_be_bytes();
@@ -439,7 +434,7 @@ impl<'a> HashValueBitIterator<'a> {
     }
 }
 
-impl<'a> std::iter::Iterator for HashValueBitIterator<'a> {
+impl std::iter::Iterator for HashValueBitIterator<'_> {
     type Item = bool;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -451,241 +446,10 @@ impl<'a> std::iter::Iterator for HashValueBitIterator<'a> {
     }
 }
 
-impl<'a> std::iter::DoubleEndedIterator for HashValueBitIterator<'a> {
+impl std::iter::DoubleEndedIterator for HashValueBitIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.pos.next_back().map(|x| self.get_bit(x))
     }
 }
 
-impl<'a> std::iter::ExactSizeIterator for HashValueBitIterator<'a> {}
-
-// /// A type that can be cryptographically hashed to produce a `HashValue`.
-// ///
-// /// In most cases, this trait should not be implemented manually but rather derived using
-// /// the macros `serde::Serialize`, `CryptoHasher`, and `BCSCryptoHash`.
-// pub trait CryptoHash {
-//     /// The associated `Hasher` type which comes with a unique salt for this type.
-//     type Hasher: CryptoHasher;
-
-//     /// Hashes the object and produces a `HashValue`.
-//     fn hash(&self) -> HashValue;
-// }
-
-// /// A trait for representing the state of a cryptographic hasher.
-// pub trait CryptoHasher: Default + std::io::Write {
-//     /// the seed used to initialize hashing `Self` before the serialization bytes of the actual value
-//     fn seed() -> &'static [u8; 32];
-
-//     /// Write bytes into the hasher.
-//     fn update(&mut self, bytes: &[u8]);
-
-//     /// Finish constructing the [`HashValue`].
-//     fn finish(self) -> HashValue;
-
-//     /// Convenience method to compute the hash of a complete byte slice.
-//     fn hash_all(bytes: &[u8]) -> HashValue {
-//         let mut hasher = Self::default();
-//         hasher.update(bytes);
-//         hasher.finish()
-//     }
-// }
-
-// /// The default hasher underlying generated implementations of `CryptoHasher`.
-// #[doc(hidden)]
-// #[derive(Clone)]
-// pub struct DefaultHasher {
-//     state: Sha3,
-// }
-
-// impl DefaultHasher {
-//     #[doc(hidden)]
-//     /// This function does not return a HashValue in the sense of our usual
-//     /// hashes, but a construction of initial bytes that are fed into any hash
-//     /// provided we're passed  a (bcs) serialization name as argument.
-//     pub fn prefixed_hash(buffer: &[u8]) -> [u8; HashValue::LENGTH] {
-//         // The salt is initial material we prefix to actual value bytes for
-//         // domain separation. Its length is variable.
-//         let salt: Vec<u8> = [DIEM_HASH_PREFIX, buffer].concat();
-//         // The seed is a fixed-length hash of the salt, thereby preventing
-//         // suffix attacks on the domain separation bytes.
-//         HashValue::sha3_256_of(&salt[..]).hash
-//     }
-
-//     #[doc(hidden)]
-//     pub fn new(typename: &[u8]) -> Self {
-//         let mut state = Sha3::v256();
-//         if !typename.is_empty() {
-//             state.update(&Self::prefixed_hash(typename));
-//         }
-//         DefaultHasher { state }
-//     }
-
-//     #[doc(hidden)]
-//     pub fn update(&mut self, bytes: &[u8]) {
-//         self.state.update(bytes);
-//     }
-
-//     #[doc(hidden)]
-//     pub fn finish(self) -> HashValue {
-//         let mut hasher = HashValue::default();
-//         self.state.finalize(hasher.as_ref_mut());
-//         hasher
-//     }
-// }
-
-// impl fmt::Debug for DefaultHasher {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "DefaultHasher: state = Sha3")
-//     }
-// }
-
-// macro_rules! define_hasher {
-//     (
-//         $(#[$attr:meta])*
-//         ($hasher_type: ident, $hasher_name: ident, $seed_name: ident, $salt: expr)
-//     ) => {
-
-//         #[derive(Clone, Debug)]
-//         $(#[$attr])*
-//         pub struct $hasher_type(DefaultHasher);
-
-//         impl $hasher_type {
-//             fn new() -> Self {
-//                 $hasher_type(DefaultHasher::new($salt))
-//             }
-//         }
-
-//         static $hasher_name: Lazy<$hasher_type> = Lazy::new(|| { $hasher_type::new() });
-//         static $seed_name: OnceCell<[u8; 32]> = OnceCell::new();
-
-//         impl Default for $hasher_type {
-//             fn default() -> Self {
-//                 $hasher_name.clone()
-//             }
-//         }
-
-//         impl CryptoHasher for $hasher_type {
-//             fn seed() -> &'static [u8;32] {
-//                 $seed_name.get_or_init(|| {
-//                     DefaultHasher::prefixed_hash($salt)
-//                 })
-//             }
-
-//             fn update(&mut self, bytes: &[u8]) {
-//                 self.0.update(bytes);
-//             }
-
-//             fn finish(self) -> HashValue {
-//                 self.0.finish()
-//             }
-//         }
-
-//         impl std::io::Write for $hasher_type {
-//             fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-//                 self.0.update(bytes);
-//                 Ok(bytes.len())
-//             }
-//             fn flush(&mut self) -> std::io::Result<()> {
-//                 Ok(())
-//             }
-//         }
-//     };
-// }
-
-// define_hasher! {
-//     /// The hasher used to compute the hash of an internal node in the transaction accumulator.
-//     (
-//         TransactionAccumulatorHasher,
-//         TRANSACTION_ACCUMULATOR_HASHER,
-//         TRANSACTION_ACCUMULATOR_SEED,
-//         b"TransactionAccumulator"
-//     )
-// }
-
-// define_hasher! {
-//     /// The hasher used to compute the hash of an internal node in the event accumulator.
-//     (
-//         EventAccumulatorHasher,
-//         EVENT_ACCUMULATOR_HASHER,
-//         EVENT_ACCUMULATOR_SEED,
-//         b"EventAccumulator"
-//     )
-// }
-
-// define_hasher! {
-//     /// The hasher used to compute the hash of an internal node in the Sparse Merkle Tree.
-//     (
-//         SparseMerkleInternalHasher,
-//         SPARSE_MERKLE_INTERNAL_HASHER,
-//         SPARSE_MERKLE_INTERNAL_SEED,
-//         b"SparseMerkleInternal"
-//     )
-// }
-
-// define_hasher! {
-//     /// The hasher used to compute the hash of an internal node in the transaction accumulator.
-//     (
-//         VoteProposalHasher,
-//         VOTE_PROPOSAL_HASHER,
-//         VOTE_PROPOSAL_SEED,
-//         b"VoteProposalHasher"
-//     )
-// }
-
-// define_hasher! {
-//     /// The hasher used only for testing. It doesn't have a salt.
-//     (TestOnlyHasher, TEST_ONLY_HASHER, TEST_ONLY_SEED, b"")
-// }
-
-// fn create_literal_hash(word: &str) -> HashValue {
-//     let mut s = word.as_bytes().to_vec();
-//     assert!(s.len() <= HashValue::LENGTH);
-//     s.resize(HashValue::LENGTH, 0);
-//     HashValue::from_slice(&s).expect("Cannot fail")
-// }
-
-// /// Placeholder hash of `Accumulator`.
-// pub static ACCUMULATOR_PLACEHOLDER_HASH: Lazy<HashValue> =
-//     Lazy::new(|| create_literal_hash("ACCUMULATOR_PLACEHOLDER_HASH"));
-
-// /// Placeholder hash of `SparseMerkleTree`.
-// pub static SPARSE_MERKLE_PLACEHOLDER_HASH: Lazy<HashValue> =
-//     Lazy::new(|| create_literal_hash("SPARSE_MERKLE_PLACEHOLDER_HASH"));
-
-// /// Block id reserved as the id of parent block of the genesis block.
-// pub static PRE_GENESIS_BLOCK_ID: Lazy<HashValue> =
-//     Lazy::new(|| create_literal_hash("PRE_GENESIS_BLOCK_ID"));
-
-// /// Genesis block id is used as a parent of the very first block executed by the executor.
-// pub static GENESIS_BLOCK_ID: Lazy<HashValue> = Lazy::new(|| {
-//     // This maintains the invariant that block.id() == block.hash(), for
-//     // the genesis block and allows us to (de/)serialize it consistently
-//     HashValue::new([
-//         0x5e, 0x10, 0xba, 0xd4, 0x5b, 0x35, 0xed, 0x92, 0x9c, 0xd6, 0xd2, 0xc7, 0x09, 0x8b, 0x13,
-//         0x5d, 0x02, 0xdd, 0x25, 0x9a, 0xe8, 0x8a, 0x8d, 0x09, 0xf4, 0xeb, 0x5f, 0xba, 0xe9, 0xa6,
-//         0xf6, 0xe4,
-//     ])
-// });
-
-// /// Provides a test_only_hash() method that can be used in tests on types that implement
-// /// `serde::Serialize`.
-// ///
-// /// # Example
-// /// ```
-// /// use diem_crypto::hash::TestOnlyHash;
-// ///
-// /// b"hello world".test_only_hash();
-// /// ```
-// pub trait TestOnlyHash {
-//     /// Generates a hash used only for tests.
-//     fn test_only_hash(&self) -> HashValue;
-// }
-
-// impl<T: ser::Serialize + ?Sized> TestOnlyHash for T {
-//     fn test_only_hash(&self) -> HashValue {
-//         let bytes = bcs::to_bytes(self).expect("serialize failed during hash.");
-//         let mut hasher = TestOnlyHasher::default();
-//         hasher.update(&bytes);
-//         hasher.finish()
-//     }
-// }
+impl std::iter::ExactSizeIterator for HashValueBitIterator<'_> {}

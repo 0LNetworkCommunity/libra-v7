@@ -11,17 +11,17 @@ module ol_framework::test_meta {
 
     let _vals = mock::genesis_n_vals(root, 2);
     // we are at epoch 0
-    let epoch = reconfiguration::get_current_epoch();
+    let epoch = reconfiguration::current_epoch();
     assert!(epoch == 0, 7357001);
     mock::trigger_epoch(root); // epoch 1
-    let epoch = reconfiguration::get_current_epoch();
+    let epoch = reconfiguration::current_epoch();
     assert!(epoch == 1, 7357002);
 
     mock::trigger_epoch(root); // epoch 2
     mock::trigger_epoch(root); // epoch 3
     mock::trigger_epoch(root); // epoch 4
 
-    let epoch = reconfiguration::get_current_epoch();
+    let epoch = reconfiguration::current_epoch();
     assert!(epoch == 4, 7357003);
 
   }
@@ -33,11 +33,11 @@ module ol_framework::test_meta {
     // NOTE: genesis_n_vals, DOES trigger a genesis END event.
     mock::genesis_n_vals(&root, 4);
 
-    let a = reconfiguration::get_current_epoch();
+    let a = reconfiguration::current_epoch();
     // create a new epoch
     reconfiguration::reconfigure_for_test();
 
-    let b = reconfiguration::get_current_epoch();
+    let b = reconfiguration::current_epoch();
 
     assert!(a == 0, 10001);
     assert!(b == 1, 10002);

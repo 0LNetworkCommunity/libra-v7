@@ -16,7 +16,7 @@ module ol_framework::test_multi_action {
     // print
     //use std::debug::print;
 
-    struct DummyType has drop, store {}  
+    struct DummyType has drop, store {}
 
     #[test(root = @ol_framework, carol = @0x1000c)]
     fun init_multi_action(root: &signer, carol: &signer) {
@@ -36,7 +36,7 @@ module ol_framework::test_multi_action {
     fun propose_offer(root: &signer, carol: &signer) {
         mock::genesis_n_vals(root, 4);
         let carol_address = @0x1000c;
-        
+
         // check the offer does not exist
         assert!(!multi_action::exists_offer(carol_address), 7357001);
         assert!(!multi_action::is_multi_action(carol_address), 7357002);
@@ -140,7 +140,7 @@ module ol_framework::test_multi_action {
 
         // check the account is multi_action
         assert!(multi_action::is_multi_action(carol_address), 7357002);
-        
+
         // check authorities
         let authorities = multi_action::get_authorities(carol_address);
         assert!(authorities == vector[@0x1000a, @0x1000b], 7357003);
@@ -173,7 +173,7 @@ module ol_framework::test_multi_action {
 
         // check the account is multi_action
         assert!(multi_action::is_multi_action(carol_address), 7357002);
-        
+
         // check authorities
         let authorities = multi_action::get_authorities(carol_address);
         assert!(authorities == vector[@0x1000a, @0x1000b], 7357003);
@@ -388,7 +388,7 @@ module ol_framework::test_multi_action {
         mock::genesis_n_vals(root, 3);
         let carol_address = @0x1000c;
         multi_action::init_gov(carol);
-        
+
         // invite bob
         multi_action::propose_offer(carol, vector[@0x1000b], option::none());
 
@@ -402,13 +402,13 @@ module ol_framework::test_multi_action {
     fun claim_expired_offer(root: &signer, carol: &signer, alice: &signer, bob: &signer) {
         mock::genesis_n_vals(root, 3);
         multi_action::init_gov(carol);
-        
+
         // offer to alice and bob
         multi_action::propose_offer(carol, vector[@0x1000a, @0x1000b], option::some(2));
 
         // alice claim the offer
         multi_action::claim_offer(alice, @0x1000c);
-        
+
         mock::trigger_epoch(root); // epoch 1 valid
         mock::trigger_epoch(root); // epoch 2 valid
         mock::trigger_epoch(root); // epoch 3 expired
@@ -418,7 +418,7 @@ module ol_framework::test_multi_action {
     }
 
     // Try to claim offer of an account without proposal
-    #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b)]  
+    #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b)]
     #[expected_failure(abort_code = 0x60011, location = ol_framework::multi_action)]
     fun claim_offer_without_proposal(root: &signer, alice: &signer) {
         mock::genesis_n_vals(root, 2);
@@ -462,7 +462,7 @@ module ol_framework::test_multi_action {
     fun finalize_without_enough_claimed(root: &signer, alice: &signer, bob: &signer) {
         mock::genesis_n_vals(root, 3);
         multi_action::init_gov(alice);
-        
+
         // offer to bob and carol authority on the alice account
         multi_action::propose_offer(alice, vector[@0x1000b, @0x1000c], option::none());
 
@@ -480,7 +480,7 @@ module ol_framework::test_multi_action {
         mock::genesis_n_vals(root, 3);
         let alice_address = @0x1000a;
         multi_action::init_gov(alice);
-        
+
         // offer bob and carol authority on the alice account
         multi_action::propose_offer(alice, vector[@0x1000b, @0x1000c], option::none());
 
@@ -494,7 +494,7 @@ module ol_framework::test_multi_action {
     }
 
     // Governance Tests
-    
+
     // Happy Day: propose a new action and check zero votes
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c)]
     fun propose_action(root: &signer, alice: &signer, bob: &signer, carol: &signer) {
@@ -505,11 +505,11 @@ module ol_framework::test_multi_action {
         multi_action::init_gov(alice);
         multi_action::init_type<DummyType>(alice, true);
         multi_action::propose_offer(alice, vector[@0x1000b, @0x1000c], option::none());
-        
+
         // bob and alice claim the offer
         multi_action::claim_offer(bob, alice_address);
-        multi_action::claim_offer(carol, alice_address);  
-        
+        multi_action::claim_offer(carol, alice_address);
+
         // alice finalize multi action workflow to release control of the account
         multi_action::finalize_and_cage(alice, 2);
 
@@ -546,8 +546,8 @@ module ol_framework::test_multi_action {
 
         // bob and alice claim the offer
         multi_action::claim_offer(bob, alice_address);
-        multi_action::claim_offer(carol, alice_address);  
-        
+        multi_action::claim_offer(carol, alice_address);
+
         // alice finalize multi action workflow to release control of the account
         multi_action::finalize_and_cage(alice, 2);
 
@@ -590,10 +590,10 @@ module ol_framework::test_multi_action {
         let alice_address = @0x1000a;
         multi_action::init_gov(alice);
         // Ths is a simple multi_action: there is no capability being stored
-        multi_action::init_type<DummyType>(alice, false);  
+        multi_action::init_type<DummyType>(alice, false);
         multi_action::propose_offer(alice, vector[@0x1000b, @0x1000c], option::none());
         multi_action::claim_offer(bob, alice_address);
-        multi_action::claim_offer(carol, alice_address);  
+        multi_action::claim_offer(carol, alice_address);
         multi_action::finalize_and_cage(alice, 2);
 
         // bob create a proposal
@@ -628,7 +628,7 @@ module ol_framework::test_multi_action {
         multi_action::init_type<DummyType>(alice, true);
         multi_action::propose_offer(alice, vector[@0x1000b, @0x1000c], option::none());
         multi_action::claim_offer(bob, alice_address);
-        multi_action::claim_offer(carol, alice_address);  
+        multi_action::claim_offer(carol, alice_address);
         multi_action::finalize_and_cage(alice, 2);
 
         // bob create a proposal and vote
@@ -650,7 +650,7 @@ module ol_framework::test_multi_action {
         assert!(option::is_some(&cap_opt), 7357003);
         let cap = option::extract(&mut cap_opt);
         let c = ol_account::withdraw_with_capability(&cap, 42,);
-        // deposit to erik account 
+        // deposit to erik account
         ol_account::create_account(root, @0x1000e);
         ol_account::deposit_coins(@0x1000e, c);
         option::fill(&mut cap_opt, cap);
@@ -671,7 +671,7 @@ module ol_framework::test_multi_action {
         mock::ol_initialize_coin_and_fund_vals(root, 10000000, true);
 
         // we are at epoch 0
-        let epoch = reconfiguration::get_current_epoch();
+        let epoch = reconfiguration::current_epoch();
         assert!(epoch == 0, 7357001);
 
         // dave creates erik resource account. He is not one of the validators, and is not an authority in the multisig.
@@ -681,15 +681,15 @@ module ol_framework::test_multi_action {
 
         // fund the account
         ol_account::transfer(alice, erik_address, 100);
-        
+
         // offer alice and bob authority on the safe
         safe::init_payment_multisig(&erik, vector[@0x1000a, @0x1000b]); // both need to sign
         multi_action::claim_offer(alice, erik_address);
-        multi_action::claim_offer(bob, erik_address);  
+        multi_action::claim_offer(bob, erik_address);
         multi_action::finalize_and_cage(&erik, 2);
 
         // make a proposal for governance, expires in 2 epoch from now
-        let id = multi_action::propose_governance(alice, erik_address, vector::empty(), true, 
+        let id = multi_action::propose_governance(alice, erik_address, vector::empty(), true,
             option::some(1), option::some(2));
 
         mock::trigger_epoch(root); // epoch 1
@@ -697,12 +697,12 @@ module ol_framework::test_multi_action {
         mock::trigger_epoch(root); // epoch 3 -- voting ended here
         mock::trigger_epoch(root); // epoch 4 -- now expired
 
-        let epoch = reconfiguration::get_current_epoch();
+        let epoch = reconfiguration::current_epoch();
         assert!(epoch == 4, 7357003);
 
         // trying to vote on a closed ballot will error
         let _passed = multi_action::vote_governance(bob, erik_address, &id);
-    }      
+    }
 
     // Happy day: change the authorities of a multisig
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
@@ -715,7 +715,7 @@ module ol_framework::test_multi_action {
         mock::ol_initialize_coin_and_fund_vals(root, 10000000, true);
         let carol_address = @0x1000c;
         let dave_address = @0x1000d;
-        
+
         // fund the account
         ol_account::transfer(alice, carol_address, 100);
         // offer alice and bob authority on the safe
@@ -724,7 +724,7 @@ module ol_framework::test_multi_action {
         let authorities = vector[@0x1000a, @0x1000b];
         multi_action::propose_offer(carol, authorities, option::none());
         multi_action::claim_offer(alice, carol_address);
-        multi_action::claim_offer(bob, carol_address);  
+        multi_action::claim_offer(bob, carol_address);
         multi_action::finalize_and_cage(carol, 2);
 
         // alice is going to propose to change the authorities to add dave and increase the threshold to 3
@@ -786,7 +786,7 @@ module ol_framework::test_multi_action {
     // Happy day: change the threshold of a multisig
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
     fun governance_change_threshold(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
-        // Scenario: The multisig gets initiated with the 2 bob and carol as the only authorities. 
+        // Scenario: The multisig gets initiated with the 2 bob and carol as the only authorities.
         // It takes 2-of-2 to sign.
         // They decide next only 1-of-2 will be needed.
         // Then they decide to invite dave and make it 3-of-3.
@@ -807,12 +807,12 @@ module ol_framework::test_multi_action {
         multi_action::init_type<DummyType>(&resource_sig, false);
         multi_action::propose_offer(&resource_sig, vector[@0x1000b, @0x1000c], option::none());
         multi_action::claim_offer(carol, new_resource_address);
-        multi_action::claim_offer(bob, new_resource_address);  
+        multi_action::claim_offer(bob, new_resource_address);
         multi_action::finalize_and_cage(&resource_sig, 2);
 
         // carol is going to propose to change the threshold to 1
         let id = multi_action::propose_governance(carol, new_resource_address, vector::empty(), true, option::some(1), option::none());
-        
+
         // check authorities and threshold
         let authorities = multi_action::get_authorities(new_resource_address);
         assert!(authorities == vector[@0x1000c, @0x1000b], 7357002); // no change
@@ -844,7 +844,7 @@ module ol_framework::test_multi_action {
 
         // now bob decide to invite dave and make it 3-of-3.
         multi_action::propose_governance(bob, new_resource_address, vector[signer::address_of(dave)], true, option::some(3), option::none());
-        
+
         // check authorities and threshold did not change
         let authorities = multi_action::get_authorities(new_resource_address);
         assert!(vector::length(&authorities) == 2, 7357011);
@@ -892,10 +892,10 @@ module ol_framework::test_multi_action {
 
         // carol is going to propose to change the authorities to add dave
         let id = multi_action::propose_governance(carol, alice_address, vector[@0x1000d], true, option::none(), option::none());
-        
+
         // bob votes and dave does not claims the offer
         multi_action::vote_governance(bob, alice_address, &id);
-        
+
         // check authorities and threshold
         assert!(multi_action::get_authorities(alice_address) == vector[@0x1000b, @0x1000c], 7357001);
         let (n, _m) = multi_action::get_threshold(alice_address);
@@ -930,7 +930,7 @@ module ol_framework::test_multi_action {
     #[expected_failure(abort_code = 0x3000C, location = ol_framework::multi_action)]
     fun vote_action_twice(root: &signer, alice: &signer, bob: &signer, carol: &signer) {
         // Scenario: Testing that a vote cannot be done twice on the same ballot.
-        
+
         mock::genesis_n_vals(root, 4);
         mock::ol_initialize_coin_and_fund_vals(root, 10000000, true);
         let carol_address = @0x1000c;
@@ -942,11 +942,11 @@ module ol_framework::test_multi_action {
         multi_action::init_type<DummyType>(carol, true);
         multi_action::propose_offer(carol, vector[@0x1000a, @0x1000b], option::none());
         multi_action::claim_offer(alice, carol_address);
-        multi_action::claim_offer(bob, carol_address);  
+        multi_action::claim_offer(bob, carol_address);
         multi_action::finalize_and_cage(carol, 2);
 
         // alice is going to propose to change the authorities to add dave
-        let id = multi_action::propose_governance(alice, carol_address, 
+        let id = multi_action::propose_governance(alice, carol_address,
             vector[dave_address], true, option::none(), option::none());
 
         // bob votes
@@ -973,7 +973,7 @@ module ol_framework::test_multi_action {
 
         // carol is going to propose to change the authorities to add dave
         let id = multi_action::propose_governance(carol, alice_address, vector[@0xCAFE], true, option::none(), option::none());
-        
+
         // bob votes and dave does not claims the offer
         multi_action::vote_governance(bob, alice_address, &id);
     }
@@ -993,7 +993,7 @@ module ol_framework::test_multi_action {
         multi_action::finalize_and_cage(alice, 2);
 
         // carol is going to propose to change the authorities to add dave twice
-        let _id = multi_action::propose_governance(carol, alice_address, 
+        let _id = multi_action::propose_governance(carol, alice_address,
             vector[@0x1000d, @0x1000d], true, option::none(), option::none());
     }
 
@@ -1048,13 +1048,13 @@ module ol_framework::test_multi_action {
         multi_action::finalize_and_cage(alice, 2);
 
         // carol is going to propose to remove dave
-        let _id = multi_action::propose_governance(carol, alice_address, 
+        let _id = multi_action::propose_governance(carol, alice_address,
             vector[@0x1000d], false, option::none(), option::none());
     }
 
     // Two governance proposals at the same time
     #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d, eve = @0x1000e)]
-    fun two_simultaneous_governance_vote(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, eve: &signer) {  
+    fun two_simultaneous_governance_vote(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer, eve: &signer) {
         mock::genesis_n_vals(root, 5);
         let alice_address = @0x1000a;
 
@@ -1067,7 +1067,7 @@ module ol_framework::test_multi_action {
 
         // carol is going to propose to change the authorities to add dave
         let id_set_n_3 = multi_action::propose_governance(carol, alice_address, vector[@0x1000d], true, option::some(3), option::none());
-              
+
         // bob is going to propose to change the authorities to add erik
         let id_set_n_1 = multi_action::propose_governance(bob, alice_address, vector[@0x1000e], true, option::some(1), option::none());
 

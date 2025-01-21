@@ -57,8 +57,8 @@
         friend ol_framework::genesis_migration;
         friend ol_framework::genesis;
 
-        // #[test_only]
-        // friend ol_framework::mock;
+        #[test_only]
+        friend ol_framework::mock;
 
         /// no policy at this address
         const ENO_BENEFICIARY_POLICY: u64 = 1;
@@ -530,7 +530,6 @@
           save_pledge(user_sig, beneficiary, coin);
         }
 
-
         ////////// GETTERS //////////
 
         fun pledge_at_idx(account: &address, address_of_beneficiary: &address): (bool, u64) acquires MyPledges {
@@ -658,10 +657,17 @@
       //////// TEST HELPERS ///////
       #[test_only]
       // Danger! withdraws from an account.
-      public fun test_single_withdrawal(vm: &signer, bene: &address, donor: &address, amount: u64): option::Option<coin::Coin<LibraCoin>> acquires MyPledges, BeneficiaryPolicy{
-        system_addresses::assert_ol(vm);
-        // testnet::assert_testnet(vm);
-        withdraw_from_one_pledge_account(bene, donor, amount)
+      public fun test_single_withdrawal(framework: &signer, donor: address, amount: u64): coin::Coin<LibraCoin> acquires MyPledges, BeneficiaryPolicy{
+        use ol_framework::testnet;
+        system_addresses::assert_diem_framework(framework);
+        testnet::assert_testnet(framework);
+
+        let opt = withdraw_from_one_pledge_account(&@ol_framework, &donor, amount);
+        assert!(option::is_some(&opt), 0);
+
+        let c =  option::extract(&mut opt);
+          option::destroy_none(opt);
+          return c
       }
 
 }

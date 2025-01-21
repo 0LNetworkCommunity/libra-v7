@@ -15,6 +15,9 @@
 #![allow(clippy::unnecessary_wraps)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+#![allow(clippy::doc_lazy_continuation)]
+#![allow(clippy::empty_line_after_doc_comments)]
+
 use crate::version_five::{
     language_storage_v5::{ModuleIdV5 as ModuleId, TypeTagV5 as TypeTag},
     legacy_address_v5::LegacyAddressV5 as AccountAddress,

@@ -45,7 +45,8 @@ module diem_framework::coin {
     friend ol_framework::test_burn;
     #[test_only]
     friend ol_framework::test_rewards;
-
+    #[test_only]
+    friend ol_framework::lockbox;
 
     //
     // Errors.

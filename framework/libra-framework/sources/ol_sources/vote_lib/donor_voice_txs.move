@@ -9,7 +9,7 @@
 /// transactions on behalf of Owner
 /// Depositors are called Donors, and the app gives depositors
 /// visibility of the transactions, and also limited authority over
-/// specific actions: alterting the Owner and Depositors from
+/// specific actions: alerting the Owner and Depositors from
 /// unauthorized transaction.
 
 /// The DonorVoice Account Lifecycle:
@@ -19,11 +19,11 @@
 
 /// By creating a TxSchedule wallet you are providing certain restrictions and guarantees to the users that interact with this wallet.
 
-/// 1. The wallet's contents is propoperty of the owner. The owner is free to issue transactions which change the state of the wallet, including transferring funds. There are however time, and veto policies.
+/// 1. The wallet's contents is property of the owner. The owner is free to issue transactions which change the state of the wallet, including transferring funds. There are however time, and veto policies.
 
 /// 2. All transfers out of the account are timed. Meaning, they will execute automatically after a set period of time passes. The VM address triggers these events at each epoch boundary. The purpose of the delayed transfers is that the transaction can be paused for analysis, and eventually rejected by the donors of the wallet.
 
-/// 3. Every pending transaction can be "vetoed". The vetos delay the finalizing of the transaction, to allow more time for analysis. Each veto adds one day/epoch to the transaction PER DAY THAT A VETO OCCURRS. That is, two vetos happening in the same day, only extend the vote by one day. If a sufficient number of Donors vote on the Veto, then the transaction will be rejected. Since TxSchedule has an expiration time, as does ParticipationVote, each time there is a veto, the deadlines for both are syncronized, based on the new TxSchedule expiration time.
+/// 3. Every pending transaction can be "vetoed". Each veto delays the finalizing of the transaction, to allow more time for analysis. Each veto adds one day/epoch to the transaction PER DAY THAT A VETO OCCURS. That is, two vetos happening in the same day, only extend the vote by one day. If a sufficient number of Donors vote on the Veto, then the transaction will be rejected. Since TxSchedule has an expiration time, as does ParticipationVote, each time there is a veto, the deadlines for both are synchronized, based on the new TxSchedule expiration time.
 
 /// 4. After three consecutive transaction rejections, the account will become frozen. The funds remain in the account but no operations are available until the Donors, un-freeze the account.
 
@@ -31,7 +31,7 @@
 
 /// 6. The donors can vote to liquidate a frozen TxSchedule account. The result will depend on the configuration of the TxSchedule account from when it was initialized: the funds by default return to the end user who was the donor.
 
-/// 7. Third party contracts can wrap the Donor Voice wallet. The outcomes of the votes can be returned to a handler in a third party contract For example, liquidiation of a frozen account is programmable: a handler can be coded to determine the outcome of the Donor Voice wallet. See in CommunityWallets the funds return to the InfrastructureEscrow side-account of the user.
+/// 7. Third party contracts can wrap the Donor Voice wallet. The outcomes of the votes can be returned to a handler in a third party contract For example, liquidation of a frozen account is programmable: a handler can be coded to determine the outcome of the Donor Voice wallet. See in CommunityWallets the funds return to the InfrastructureEscrow side-account of the user.
 
 module ol_framework::donor_voice_txs {
     use std::vector;
@@ -45,6 +45,7 @@ module ol_framework::donor_voice_txs {
     use ol_framework::ballot;
     use ol_framework::epoch_helper;
     use ol_framework::ol_account;
+    use ol_framework::ol_features_constants;
     use ol_framework::receipts;
     use ol_framework::multi_action;
     use ol_framework::account::{Self, WithdrawCapability};
@@ -79,6 +80,9 @@ module ol_framework::donor_voice_txs {
     const ENO_VETO_ID_FOUND: u64 = 6;
     /// No enum for this number
     const EPAYEE_NOT_SLOW: u64 = 7;
+
+    /// Governance mode: chain has restricted Donor Voice transactions while upgrades are executed.
+    const EGOVERNANCE_MODE: u64 = 8;
 
     /// number of epochs to wait before a transaction is executed
     /// Veto can happen in this time
@@ -140,6 +144,8 @@ module ol_framework::donor_voice_txs {
     // 3. Once the MultiSig is initialized, the account needs to be caged, before the MultiSig can be used.
 
     public(friend) fun make_donor_voice(sponsor: &signer)  {
+      assert!(!ol_features_constants::is_governance_mode_enabled(), error::invalid_state(EGOVERNANCE_MODE));
+
       // will not create if already exists (for migration)
       cumulative_deposits::init_cumulative_deposits(sponsor);
 
@@ -211,6 +217,8 @@ module ol_framework::donor_voice_txs {
       value: u64,
       description: vector<u8>
     ): guid::ID acquires TxSchedule {
+      assert!(!ol_features_constants::is_governance_mode_enabled(), error::invalid_state(EGOVERNANCE_MODE));
+
       assert!(slow_wallet::is_slow(payee), error::invalid_argument(EPAYEE_NOT_SLOW));
 
       let tx = Payment {
@@ -412,8 +420,8 @@ module ol_framework::donor_voice_txs {
       (amount_processed, expected_amount, expected_amount == amount_processed)
     }
 
-    // COMMIT NOTE: ok to be public
-    public fun find_by_deadline(multisig_address: address, epoch: u64): vector<guid::ID> acquires TxSchedule {
+    #[test_only]
+    public(friend) fun find_by_deadline(multisig_address: address, epoch: u64): vector<guid::ID> acquires TxSchedule {
       let state = borrow_global_mut<TxSchedule>(multisig_address);
       let i = 0;
       let list = vector::empty<guid::ID>();
@@ -736,9 +744,8 @@ module ol_framework::donor_voice_txs {
     multi_action::get_proposal_status_by_id<Payment>(directed_address, uid)
   }
 
-  // COMMIT NOTE: OK to be public
   /// Get the status of a SCHEDULED payment which as already passed the multisig stage.
-  public fun get_schedule_state(directed_address: address, uid: &guid::ID): (bool, u64, u8) acquires TxSchedule { // (is_found, index, state)
+  fun get_schedule_state(directed_address: address, uid: &guid::ID): (bool, u64, u8) acquires TxSchedule { // (is_found, index, state)
     let state = borrow_global<TxSchedule>(directed_address);
     find_schedule_by_id(state, uid)
   }

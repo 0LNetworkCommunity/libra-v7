@@ -7,6 +7,7 @@ module ol_framework::test_donor_voice {
   use ol_framework::donor_voice_txs;
   use ol_framework::mock;
   use ol_framework::ol_account;
+  use ol_framework::ol_features_constants;
   use ol_framework::multi_action;
   use ol_framework::receipts;
   use ol_framework::donor_voice_governance;
@@ -15,6 +16,7 @@ module ol_framework::test_donor_voice {
   use ol_framework::burn;
   use ol_framework::slow_wallet;
   use diem_framework::multisig_account;
+  use std::features;
   use std::guid;
   use std::vector;
   use std::signer;
@@ -889,5 +891,55 @@ module ol_framework::test_donor_voice {
         vector::push_back(&mut workers, @80803);
 
         workers
+    }
+
+    #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
+    #[expected_failure(abort_code = 196616, location = 0x1::donor_voice_txs)]
+
+    fun dv_init_fails_in_gov_mode(root: &signer, alice: &signer) {
+      // Scenario: Alice tries to make an account a DV account
+      // but fails because we are in governance mode.
+
+      let vals = mock::genesis_n_vals(root, 4);
+      let (resource_sig, _cap) = ol_account::test_ol_create_resource_account(alice, b"0x1");
+      let _donor_voice_address = signer::address_of(&resource_sig);
+
+      //////// ENTER GOVERNANCE MODE ////////
+      let gov_mode_id = ol_features_constants::get_governance_mode();
+      features::change_feature_flags(root, vector::singleton(gov_mode_id), vector::empty());
+
+      // the account needs basic donor directed structs
+      donor_voice_txs::test_helper_make_donor_voice(root, &resource_sig, vals);
+    }
+
+    #[test(root = @ol_framework, alice = @0x1000a, bob = @0x1000b, carol = @0x1000c, dave = @0x1000d)]
+    #[expected_failure(abort_code = 196616, location = 0x1::donor_voice_txs)]
+
+    fun dv_schedule_fails_in_gov_mode(root: &signer, alice: &signer, bob: &signer, carol: &signer, dave: &signer) {
+      // Scenario: Alice has a pre-existing DV account
+      // and tries to schedule a transactions but fails because
+      // we are in governance mode.
+
+      let vals = mock::genesis_n_vals(root, 4);
+      let (resource_sig, _cap) = ol_account::test_ol_create_resource_account(alice, b"0x1");
+      let donor_voice_address = signer::address_of(&resource_sig);
+
+      // the account needs basic donor directed structs
+      donor_voice_txs::test_helper_make_donor_voice(root, &resource_sig, vals);
+
+      // vals claim the offer
+      multi_action::claim_offer(alice, donor_voice_address);
+      multi_action::claim_offer(bob, donor_voice_address);
+      multi_action::claim_offer(carol, donor_voice_address);
+      multi_action::claim_offer(dave, donor_voice_address);
+
+      //need to cage to finalize donor directed workflow and release control of the account
+      multi_action::finalize_and_cage(&resource_sig, 2);
+
+      //////// ENTER GOVERNANCE MODE ////////
+      let gov_mode_id = ol_features_constants::get_governance_mode();
+      features::change_feature_flags(root, vector::singleton(gov_mode_id), vector::empty());
+
+      let _uid = donor_voice_txs::test_propose_payment(bob, donor_voice_address, @0x1000b, 100, b"thanks bob");
     }
 }

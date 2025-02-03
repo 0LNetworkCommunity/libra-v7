@@ -209,14 +209,6 @@ module std::features {
         is_enabled(DIEM_UNIQUE_IDENTIFIERS)
     }
 
-    /// Whether the new epoch trigger logic is enabled.
-    /// Lifetime: transient
-    const EPOCH_TRIGGER_ENABLED: u64 = 24;
-    public fun get_epoch_trigger(): u64 { EPOCH_TRIGGER_ENABLED }
-    public fun epoch_trigger_enabled(): bool acquires Features {
-        is_enabled(EPOCH_TRIGGER_ENABLED)
-    }
-
     // ============================================================================================
     // Feature Flag Implementation
 
@@ -244,8 +236,9 @@ module std::features {
         });
     }
 
+    #[view]
     /// Check whether the feature is enabled.
-    fun is_enabled(feature: u64): bool acquires Features {
+    public fun is_enabled(feature: u64): bool acquires Features {
         exists<Features>(@std) &&
         contains(&borrow_global<Features>(@std).features, feature)
     }

@@ -1,6 +1,5 @@
 module diem_framework::transaction_validation {
     use std::error;
-    // use std::features;
     use std::signer;
     use std::vector;
 

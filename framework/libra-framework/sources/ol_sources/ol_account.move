@@ -13,6 +13,7 @@ module ol_framework::ol_account {
 
 
     use ol_framework::ancestry;
+    use ol_framework::ol_features_constants;
     use ol_framework::libra_coin::{Self, LibraCoin};
     use ol_framework::slow_wallet;
     use ol_framework::receipts;
@@ -75,11 +76,13 @@ module ol_framework::ol_account {
 
     /// This key cannot be used to create accounts. The address may have
     /// malformed state. And says, "My advice is to not let the boys in".
-    const ETOMBSTONE: u64 = 21;
+    const ETOMBSTONE: u64 = 13;
 
     /// This account is malformed, it does not have the necessary burn tracker struct
-    const ENO_TRACKER_INITIALIZED: u64 = 13;
+    const ENO_TRACKER_INITIALIZED: u64 = 14;
 
+    /// Governance mode: chain has restricted p2p transactions while upgrades are executed.
+    const EGOVERNANCE_MODE: u64 = 15;
 
     ///////// CONSTS /////////
     /// what limit should be set for new account creation while using transfer()
@@ -312,6 +315,8 @@ module ol_framework::ol_account {
 
     // actual implementation to allow for capability
     fun transfer_checks(payer: address, recipient: address, amount: u64) {
+        assert!(!ol_features_constants::is_governance_mode_enabled(), error::invalid_state(EGOVERNANCE_MODE));
+
         let limit = slow_wallet::unlocked_amount(payer);
         assert!(amount < limit, error::invalid_state(EINSUFFICIENT_BALANCE));
 

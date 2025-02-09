@@ -1,0 +1,319 @@
+name: rust ci
+
+on:
+  push:
+    branches: "**debug**" # glob pattern to allow slash/
+
+env:
+  LIBRA_CI: 1
+  MODE_0L: "TESTNET"
+
+jobs:
+  build-framework:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/get_cli
+
+      - name: build framework
+        working-directory: ./framework
+        # uses the libra binary to compile faster, without needing to compile the Move compiler
+        run: ${{github.workspace}}/libra move framework release
+
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: framework-build
+          path: framework/*
+
+  # types:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     # fail fast if types doesn't compile, everything else will fail.
+  #     - name: types
+  #       working-directory: ./types
+  #       run: cargo test --no-fail-fast
+
+  # wallet:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - name: wallet
+  #       if: always()
+  #       working-directory: ./tools/wallet
+  #       run: cargo test --no-fail-fast
+
+  # # NOTE: all jobs below need the fresh framework build
+  # smoke:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     # make sure we have a fresh framework build
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     # Check test suite meta tests
+  #     - name: smoke-tests # NOTE: needs working DIEM_FORGE_NODE_BIN_PATH
+  #       if: always()
+  #       working-directory: ./smoke-tests
+  #       run: cargo test --no-fail-fast -- --test-threads=1
+
+  # query:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+
+  #     # Tools tests (some use smoke-tests)
+  #     - name: query
+  #       if: always()
+  #       working-directory: ./tools/query
+  #       run: cargo test --no-fail-fast
+
+  # genesis:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+
+  #     - name: genesis
+  #       if: always()
+  #       working-directory: ./tools/genesis
+  #       run: cargo test --no-fail-fast
+
+  # txs:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+
+  #     - name: txs
+  #       if: always()
+  #       working-directory: ./tools/txs
+  #       # NOTE: upgrade tests which compile Move code, and then submit in the same thread will cause a stack overflow with the default rust stack size.
+  #       run: RUST_MIN_STACK=104857600 cargo test --no-fail-fast
+
+  upgrades:
+    timeout-minutes: 60
+    needs: [build-framework]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # - name: Get branch name
+      #   id: get_branch
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || context.ref.replace('refs/heads/', '');
+      #       core.setOutput('branch', branch);
+
+      # - name: Print branch name
+      #   run: |
+      #     echo "Branch name: ${{ steps.get_branch.outputs.branch }}"
+
+      - name: setup env
+        uses: ./.github/actions/build_env
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "libra-framework"
+          cache-all-crates: true
+          cache-on-failure: true
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
+      - uses: actions/download-artifact@v4.1.2
+        with:
+          name: framework-build
+          path: framework/
+
+      # - name: Fetch main branch
+      #   run: git fetch origin main
+
+      # - name: Check if last commit on main has [breaking] in the message
+      #   id: check_breaking_commit
+      #   run: |
+      #     LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B origin/main)
+      #     if echo "$LAST_COMMIT_MESSAGE" | grep -q "\[breaking\]"; then
+      #       echo "hasBreakingCommit=true" >> $GITHUB_ENV
+      #     else
+      #       echo "hasBreakingCommit=false" >> $GITHUB_ENV
+      #     fi
+
+      # - name: Print main last commit message condition
+      #   run: |
+      #     echo "Main last commit has [breaking]: ${{ env.hasBreakingCommit }}"
+
+      - name: delete fixtures and force rebuild
+        working-directory: ./framework/src/upgrade_fixtures/fixtures
+        run: |
+          rm -rf upgrade-*
+          RUST_MIN_STACK=104857600 cargo t -- make_the_upgrade_fixtures --include-ignored
+
+      - name: upgrade - check workflow
+        if: always()
+        working-directory: ./upgrade-tests
+        # NOTE: upgrade tests which compile Move code, and then submit in the same thread will cause a stack overflow with the default rust stack size.
+        run: RUST_MIN_STACK=104857600 cargo test --no-fail-fast -- --skip compatible_
+
+      - name: upgrade - should be backwards compatible
+        # should always run unless we explicitly mark the branch or tag as "breaking"
+        # if: ${{ env.hasBreakingCommit == 'false' && !contains(steps.get_branch.outputs.branch, 'breaking/') }}
+        working-directory: ./upgrade-tests
+        # NOTE: upgrade tests which compile Move code, and then submit in the same thread will cause a stack overflow with the default rust stack size.
+        run: RUST_MIN_STACK=104857600 cargo test compatible_
+
+  # rescue:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+  #     - name: rescue
+  #       if: always()
+  #       working-directory: ./tools/rescue
+  #       run: RUST_MIN_STACK=104857600 cargo test --no-fail-fast -- --test-threads=1
+  # storage:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - name: storage
+  #       working-directory: ./tools/storage
+  #       run: cargo test --no-fail-fast
+
+  # twin-testsuite:
+  #   timeout-minutes: 60
+  #   needs: [build-framework]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: setup env
+  #       uses: ./.github/actions/build_env
+
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         shared-key: "libra-framework"
+  #         cache-all-crates: true
+  #         cache-on-failure: true
+
+  #     - uses: actions/download-artifact@v4.1.2
+  #       with:
+  #         name: framework-build
+  #         path: framework/
+
+  #     - name: twin
+  #       working-directory: ./testsuites/twin
+  #       run: cargo test --no-fail-fast

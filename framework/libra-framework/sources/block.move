@@ -244,8 +244,6 @@ module diem_framework::block {
             };
 
             if (timestamp - reconfiguration::last_reconfiguration_time() >= block_metadata_ref.epoch_interval) {
-                // if (!features::epoch_trigger_enabled() ||
-                // testnet::is_testnet()) {
                 if (testnet::is_testnet()) {
                     epoch_boundary::epoch_boundary(
                         vm,

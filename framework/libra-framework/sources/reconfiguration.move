@@ -2,7 +2,6 @@
 /// to synchronize configuration changes for the validators.
 module diem_framework::reconfiguration {
     use std::error;
-    // use std::features;
     use std::signer;
 
     use diem_framework::account;

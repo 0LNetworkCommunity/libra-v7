@@ -21,6 +21,7 @@ module ol_framework::test_boundary {
   use ol_framework::epoch_boundary;
   use ol_framework::block;
   use ol_framework::ol_account;
+  use ol_framework::ol_features_constants;
 
   use diem_std::debug::print;
 
@@ -368,31 +369,6 @@ module ol_framework::test_boundary {
   }
 
 
-  // #[test(root = @ol_framework, alice = @0x1000a, marlon = @0x12345)]
-  // fun test_epoch_trigger_disabled(root: &signer) {
-  //   common_test_setup(root);
-  //   // testing mainnet, so change the chainid
-  //   testnet::unset(root);
-
-  //   //verify trigger is not enabled
-  //   assert!(!features::epoch_trigger_enabled(), 101);
-
-  //   // test setup advances to epoch #2
-  //   let epoch = reconfiguration::get_current_epoch();
-  //   assert!(epoch == 2, 7357001);
-  //   epoch_boundary::test_set_boundary_ready(root, epoch);
-
-
-  //   // case: trigger not set and flipped
-  //   timestamp::fast_forward_seconds(1); // needed for reconfig
-  //   block::test_maybe_advance_epoch(root, 602000001, 602000000);
-
-  //   // test epoch advances
-  //   let epoch = reconfiguration::get_current_epoch();
-  //   assert!(epoch == 3, 7357002);
-
-  // }
-
   #[test(root = @ol_framework, alice = @0x1000a, marlon = @0x12345)]
   fun test_epoch_trigger_enabled(root: &signer) {
     common_test_setup(root);
@@ -404,19 +380,18 @@ module ol_framework::test_boundary {
     epoch_boundary::test_set_boundary_ready(root, epoch);
 
     // case: epoch trigger set
-    features::change_feature_flags(root, vector[features::get_epoch_trigger()], vector[]);
+    features::change_feature_flags(root, vector[ol_features_constants::get_epoch_trigger()], vector[]);
+    assert!(features::is_enabled(ol_features_constants::get_epoch_trigger()), 7357002);
     timestamp::fast_forward_seconds(1); // needed for reconfig
     block::test_maybe_advance_epoch(root, 603000001, 602000000);
 
     // test epoch did not advance and needs to be triggered
     let epoch = reconfiguration::get_current_epoch();
-    assert!(epoch == 2, 7357002);
+    assert!(epoch == 2, 7357003);
 
     // test epoch can be triggered and advances
     epoch_boundary::test_trigger(root);
     let epoch = reconfiguration::get_current_epoch();
-    assert!(epoch == 3, 7357002);
+    assert!(epoch == 3, 7357004);
   }
-
-
 }

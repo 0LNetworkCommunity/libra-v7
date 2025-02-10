@@ -1,0 +1,71 @@
+services:
+  alice:
+    #image: ubuntu:22.04
+    image: ghcr.io/0lnetworkcommunity/libra-framework/libra-node:ff6a7c255f9a4220a3a577c2e2eb5345261ed511
+    container_name: libra_alice
+    hostname: alice
+    environment:
+      - ME=alice
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+    command: [ "sh", "/entrypoint.sh" ]
+    networks:
+      - libra_network
+    ports:
+      - "8280:8080"
+      - "9201:9101"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+
+  bob:
+    #image: ubuntu:22.04
+    image: ghcr.io/0lnetworkcommunity/libra-framework/libra-node:ff6a7c255f9a4220a3a577c2e2eb5345261ed511
+    container_name: libra_bob
+    hostname: bob
+    depends_on:
+      - alice
+    environment:
+      - ME=bob
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+    command: [ "sh", "/entrypoint.sh" ]
+    networks:
+      - libra_network
+    ports:
+      - "8380:8080"
+      - "9301:9101"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+
+  carol:
+    #image: ubuntu:22.04
+    image: ghcr.io/0lnetworkcommunity/libra-framework/libra-node:ff6a7c255f9a4220a3a577c2e2eb5345261ed511
+    container_name: libra_carol
+    hostname: carol
+    depends_on:
+      - alice
+    environment:
+      - ME=carol
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+    command: [ "sh", "/entrypoint.sh" ]
+    networks:
+      - libra_network
+    ports:
+      - "8480:8080"
+      - "9401:9101"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+        
+networks:
+  libra_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
